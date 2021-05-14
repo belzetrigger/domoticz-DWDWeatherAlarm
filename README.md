@@ -7,7 +7,7 @@ Yet another weather warning plugin for Domoticz. This plugin uses the data provi
 
 | Device | Image | Comment |
 | ------ | ----- | ------- |
-| immediate | <img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/raw/master/resources/alert_immediate_init.PNG' width="300" alt="immediate">  | shows alerts that are marked as immediate | 
+| immediate | <img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/blob/master/resources/alert_immediate_init.png' width="300" alt="immediate">  | shows alerts that are marked as immediate | 
 | future | <img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/raw/master/resources/alert_future.PNG' width="300" alt="future"> | shows future alerts |
 
 ## Summary
@@ -122,11 +122,11 @@ Based on https://github.com/ffes/domoticz-buienradar/ there are
 
 ## Links
 ### DWD Documentation:
-https://www.dwd.de/DE/wetter/warnungen_aktuell/objekt_einbindung/einbindung_karten_geodienste.pdf?__blob=publicationFile&v=14
-https://www.dwd.de/DE/leistungen/opendata/help/warnungen/dwd_warnings_products_overview_de_pdf.pdf?__blob=publicationFile&v=7
-https://www.dwd.de/DE/leistungen/opendata/help/warnungen/warning_codes_pdf.pdf?__blob=publicationFile&v=5
+- https://www.dwd.de/DE/wetter/warnungen_aktuell/objekt_einbindung/einbindung_karten_geodienste.pdf?__blob=publicationFile&v=14
+- https://www.dwd.de/DE/leistungen/opendata/help/warnungen/dwd_warnings_products_overview_de_pdf.pdf?__blob=publicationFile&v=7
+- https://www.dwd.de/DE/leistungen/opendata/help/warnungen/warning_codes_pdf.pdf?__blob=publicationFile&v=5
 ### similar plugins
-https://community.home-assistant.io/t/dwd-warnapp-sensor-amtliche-warnungen-des-deutschen-wetterdienstes/22699/27
-https://github.com/Hummel95/home-assistant/blob/dev/homeassistant/components/dwd_weather_warnings/sensor.py
+- https://community.home-assistant.io/t/dwd-warnapp-sensor-amtliche-warnungen-des-deutschen-wetterdienstes/22699/27
+- https://github.com/Hummel95/home-assistant/blob/dev/homeassistant/components/dwd_weather_warnings/sensor.py
 
 
