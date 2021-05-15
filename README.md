@@ -7,7 +7,12 @@ Yet another weather warning plugin for Domoticz. This plugin uses the data provi
 
 | Device | Image | Comment |
 | ------ | ----- | ------- |
-| immediate | <img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/blob/master/resources/alert_immediate_init.png' width="300" alt="immediate">  | shows alerts that are marked as immediate | 
+| immediate | <img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/blob/master/resources/alert_immediate_init.png' width="300" alt="immediate init">  <br/>
+
+<img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/blob/master/resources/device_immediate_minor.png' width="300" alt="immediate loaded"><br/>
+<img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/blob/master/resources/device_immediate_minor.png' width="300" alt="immediate muliple">
+
+| shows alerts that are marked as immediate.<br/>Using the name provided form WFS and also Icons and Alarm Color | 
 | future | <img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/raw/master/resources/alert_future.PNG' width="300" alt="future"> | shows future alerts |
 
 ## Summary
