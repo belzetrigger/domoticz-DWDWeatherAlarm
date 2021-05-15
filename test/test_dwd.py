@@ -130,6 +130,8 @@ class Test_dwd(unittest.TestCase):
 
         self.dwd = self.readAndCreate(config, CONFIG_SECTION_MY)
         self.doWork(self.dwd)
+        self.assertIsNotNone(self.dwd.getAlarmLevel)
+        self.assertIsNotNone(self.dwd.getAlarmText)
 
     def test_Gemeinde_Oberstdorf(self):
         """

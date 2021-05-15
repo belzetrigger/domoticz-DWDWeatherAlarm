@@ -2,6 +2,9 @@ from datetime import datetime
 import re
 import dateutil.parser
 
+BLZ_DEBUG:str="Debug"
+BLZ_TEST:str="Test"
+
 def isBlank(myString: str) -> bool:
     """
     checks a string for empty or blank.
@@ -30,6 +33,20 @@ def isNotBlank(myString: str) -> bool:
     """
     return bool(myString and myString.strip())
 
+def contains(myString:str, mySearchString:str) -> bool:
+    if( not mySearchString and myString):
+        return False
+    if( not myString and mySearchString):
+        return False
+    return mySearchString.upper() in myString.upper()
+    
+
+def containsDebug(myString:str) -> bool:
+    return contains(myString=myString, mySearchString=BLZ_DEBUG)
+
+
+def containsTest(myString:str) -> bool:
+    return contains(myString=myString, mySearchString=BLZ_TEST)
 
 def isValidMAC(mac: str) -> bool:
     """checks given string for MAC-Pattern

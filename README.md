@@ -7,9 +7,10 @@ Yet another weather warning plugin for Domoticz. This plugin uses the data provi
 
 | Device | Image | Comment |
 | ------ | ----- | ------- |
-| immediate | <img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/blob/master/resources/alert_immediate_init.png' width="300" alt="immediate init">  <br/> <img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/blob/master/resources/device_immediate_minor.png' width="300" alt="immediate loaded"><br/> <img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/blob/master/resources/device_immediate_minor.png' width="300" alt="immediate muliple">| shows alerts that are marked as immediate.<br/>Using the name provided form WFS and also Icons and Alarm Color | 
-| future | <img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/raw/master/resources/alert_future.PNG' width="300" alt="future"> | shows future alerts |
-
+| immediate | <img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/blob/master/resources/alert_immediate_init.png' width="300" alt="immediate init">  <br/> <img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/blob/master/resources/device_immediate_minor.png' width="300" alt="immediate loaded"><br/> <img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/blob/master/resources/device_immediate_minor.png' width="300" alt="immediate multiple">| shows alerts that are marked as immediate.<br/>Using the name provided form WFS and also Icons and Alarm Color | 
+| future | <img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/raw/master/resources/alert_future.png' width="300" alt="future"> | shows future alerts |
+| error | <img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/raw/master/resources/alert_immediate_wrong_conf.png' width="300" alt="config error"> | if no warncell could by found for this warnCellId,Region pair a info is shown |
+| test |  <img src='https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/raw/master/resources/alert_immediate_in_test_mode.png' width="300" alt="config error">  | if `test` is turned on and configuration is okay but no warning exist, plugin generates random icons with random level
 ## Summary
 During the last winter time it felt like that the https://www.meteoalarm.eu/ had sometimes a delay and sometimes weather warnings never popped up. So I started to checkout what we can get from the Deutscher Wetterdienst (DWD). They publish data in several ways. 
 The Web Feature Server (WFS) looked much more interesting  as it supports a Query-API.
@@ -85,7 +86,7 @@ Alert Images are from DWD so Copyright Deutscher Wetter Dienst more see: [DWD Ic
 | WarnCellId | Id from the [CSV List](https://www.dwd.de/DE/leistungen/opendata/help/warnungen/cap_warncellids_csv.html) |
 | RegionType | Mostly Gemeinde or Landkreis |
 | Update | polling time in minutes |
-| Debug         | if True, the log will be hold a lot more output.                                                                                                                                                                                                                                                                                                                                                                     |
+| Debug         | if True, the log will be hold a lot more output<br>if `with Test` we just generate random alarms                                                                                                                                                                                                                                                                                                                                                                     |
 ## Usage
 Just add your warncell / region. Check out that devices are created. Locations name will be used as device name. 
 If nothing pops up, check Domoticz Logs. And try to change Id or RegionType.
@@ -94,9 +95,10 @@ If nothing pops up, check Domoticz Logs. And try to change Id or RegionType.
 - [x] use name coming from WFS for devices
 - [x] use icons to symbolize the event
 - [x] use color to show severity
-- [ ] meaning full data on image, hover, ...  
+- [ ] meaning full data on image, hover, ... 
+- [ ] how to handle future warning? show it like DWD does or just like normal AlertStatus 
 - [ ] change from online icon to offline icon
-- [ ] change general device icon, so we use big icons from DWD
+- [ ] change general device icon, so we use big icons from DWD. but this is an AlertDevice, Domoticz takes `Alert48` per default and this cannot be changed by custom symbols. 
 - [ ] support also name not only warncell
 - [ ] more filter options, 
   - [ ] like certain severity level 

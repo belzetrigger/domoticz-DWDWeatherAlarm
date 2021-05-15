@@ -14,7 +14,7 @@ from urllib.parse import quote, quote_plus
 #import os
 
 try:
-    import Domoticz  # python.analysis.warnings:
+    import Domoticz  # type: ignore # python.analysis.warnings:
 except ImportError:
     from blz import fakeDomoticz as Domoticz
 
@@ -84,7 +84,9 @@ class DwdIcons(Enum):
     @classmethod
     def getByName(cls, aName: str):
         # cls here is the enumeration
-        return cls.__getattr__(aName)
+        if(isBlank(aName)):
+            return None
+        return cls.__getattr__(aName) # type: ignore
 
 
 @unique
@@ -119,7 +121,7 @@ class Severity(Enum):
     @classmethod
     def getByName(cls, aName: str):
         # cls here is the enumeration
-        return cls.__getattr__(aName)
+        return cls.__getattr__(aName) # type: ignore
 
     @classmethod
     def max(cls, a:Enum, b:Enum):
@@ -161,7 +163,7 @@ class DwdAlertColor(Enum):
     @classmethod
     def getByName(cls, aName: str):
         # cls here is the enumeration
-        return cls.__getattr__(aName)
+        return cls.__getattr__(aName) # type: ignore
 
     @classmethod
     def getBySeverity(cls, severity: Severity):
@@ -205,7 +207,7 @@ class RegionType(Enum):
     @classmethod
     def getByName(cls, aName: str):
         # cls here is the enumeration
-        return cls.__getattr__(aName.upper())
+        return cls.__getattr__(aName.upper()) # type: ignore
 
 
 class DwdData():
@@ -250,11 +252,12 @@ class DwdData():
 
 class Dwd():  # (BlzHelperInterface):
 
-    def __init__(self, dwdWarnCellId: str, regionType: RegionType = RegionType.GEMEINDE):
+    def __init__(self, dwdWarnCellId: str, regionType: RegionType = RegionType.GEMEINDE, debug:bool=False, test:bool=False):
         Domoticz.Debug("create dwd for {}".format(dwdWarnCellId))
         self.warnCellId = dwdWarnCellId
         self.regionType = regionType
-        self.debug = False
+        self.debug = debug
+        self.test = test
         #self.lastTimeStamp = None  # last time stamp from web
         #self.currentTimeSamp = None
         self.updateNeeded = True
@@ -349,7 +352,7 @@ class Dwd():  # (BlzHelperInterface):
     def needsUpdate(self):
         return self.updateNeeded
 
-    def doesWarnCellExist(self):
+    def doesWarnCellExist(self)->bool:
         """checks if the given warn cell for this region type exists. as warncell and region type must go hand in hand.
 
         Returns:   
@@ -404,11 +407,19 @@ class Dwd():  # (BlzHelperInterface):
                 Domoticz.Debug("No data for Kreis")
 
     def readContent(self):
-        if(self.baseDataInitialized is False):
-            self.setError("Please init via 'doesWarnCellExist()' DWD first")
-            return
+        #if(self.baseDataInitialized is False):
+        #    self.setError("Please init via 'doesWarnCellExist()' DWD first")
+        #    return
+
+        # maybe better just call it self
+        
 
         try:
+
+            Domoticz.Error("Looks like wrong order - check and init via 'doesWarnCellExist()' were missing ")
+            if( self.doesWarnCellExist() is False):
+                raise ValueError("Check configuration WarnCellId for this region not found.")
+
             #TODO for now no optimization, so reset data, if connection problem - old data is lost
 
             self.reinitData()
@@ -503,13 +514,17 @@ class Dwd():  # (BlzHelperInterface):
             if isFirst is False:
                 text = text +"<br>"
             warnImg :str=""
-            # can also be multiple entries
-            splits = x.eventGroup.split(';')
+            # can also be multiple entries, sometime they use ',' sometime ';'
+            n=x.eventGroup.replace(',',';')
+            splits = n.split(';')
             warnColor=x.eventColor
             warnColor=warnColor.replace(' ',',')
             for split in splits:
                 icn = DwdIcons.getByName(split)
-                warnImg=warnImg+"<img style='border: solid rgb({});' height='20' src='{}' title='{:%a %d %H:%M} - {:%a %H:%M}'/>".format( warnColor, icn.getUrl(), x.startTime, x.endTime)
+                if(not icn):
+                    Domoticz.Error("did not got an image for {}".format(split))
+                else:
+                    warnImg=warnImg+"<img style='border: solid rgb({});' height='20' src='{}' title='{:%a %d %H:%M} - {:%a %H:%M}'/>".format( warnColor, icn.getUrl(), x.startTime, x.endTime)
 
            
             #if(icn):
@@ -520,12 +535,15 @@ class Dwd():  # (BlzHelperInterface):
             isFirst = False
 
         if isBlank(text):
-            # Testing
-            #icn = DwdIcons.RAIN
-            icn = random.choice(list(DwdIcons))
-            cl=DwdAlertColor.getBySeverity(random.choice(list(Severity)))
-            warnColor=cl
-            text = "No Alert <img style='border: solid {};' height='20' src='{}' />".format(warnColor.getColorAsHexString(),icn.getUrl())
+            #TODO just for Testing remove later
+            if(self.test):
+                 #icn = DwdIcons.RAIN
+                icn = random.choice(list(DwdIcons))
+                cl=DwdAlertColor.getBySeverity(random.choice(list(Severity)))
+                warnColor=cl
+                text = "No Alert <img style='border: solid {};' height='20' src='{}' />".format(warnColor.getColorAsHexString(),icn.getUrl())
+            else:    
+                text = "No Alert"
         return text
 
     def getAlarmTextFuture(self) -> str:
@@ -539,7 +557,15 @@ class Dwd():  # (BlzHelperInterface):
             isFirst = False
 
         if isBlank(text):
-            text = "No Alert"
+             #TODO for Testing - remove later
+            if(self.test):
+                 #icn = DwdIcons.RAIN
+                icn = random.choice(list(DwdIcons))
+                cl=DwdAlertColor.getBySeverity(random.choice(list(Severity)))
+                warnColor=cl
+                text = "No Alert <img style='border: solid {};' height='20' src='{}' />".format(warnColor.getColorAsHexString(),icn.getUrl())
+            else:    
+                text = "No Alert"
         return text
 
     def getDeviceName(self) -> str:

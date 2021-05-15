@@ -41,8 +41,8 @@
         required="true" default="102000000"/>
         <param field="Mode2" label="RegionType" width="200px">
             <options>
-                <option label="Gemeinde" value="Gemeinde"/>
-                <option label="Landkreise" value="Kreis"/>
+                <option label="Landkreise" value="Kreis" />
+                <option label="Gemeinde" value="Gemeinde"/>                
                 <option label="Kueste" value="KUESTE"/>
                 <option label="Binnenseen" value="Binnensee"/>
                 <option label="Nord- und Ostsee" value="SEE"/>
@@ -54,8 +54,9 @@
         
         <param field="Mode6" label="Debug" width="75px">
             <options>
-                <option label="True" value="Debug"/>
-                <option label="False" value="Normal"  default="False" />
+                <option label="False" value="Normal" />
+                <option label="True" value="Debug"/>                
+                <option label="with Test" value="Debug Test"  />
             </options>
         </param>
         
@@ -69,7 +70,7 @@ import urllib
 from datetime import datetime, timedelta
 from typing import List
 try:
-    import Domoticz
+    import Domoticz # type: ignore
 except ImportError:
     from blz import fakeDomoticz as Domoticz
     from blz.fakeDomoticz import Parameters
@@ -101,6 +102,7 @@ class BasePlugin:
     def __init__(self):
         self.dwd:Dwd = None
         self.debug = False
+        self.test = False
         self.error = False
         self.nextpoll = datetime.now()
         self.pollinterval = DEFAULT_POLL_INTERVAL_HOURS
@@ -108,14 +110,17 @@ class BasePlugin:
         return
 
     def onStart(self):
-        if Parameters["Mode6"] == 'Debug':
+        Domoticz.Log("onStart called")
+        if blzHelperInterface.containsDebug(Parameters["Mode6"]):
             self.debug = True
             Domoticz.Debugging(1)
             DumpConfigToLog()
         else:
             Domoticz.Debugging(0)
 
-        Domoticz.Log("onStart called")
+        self.test= blzHelperInterface.containsTest(Parameters["Mode6"])   
+
+        
 
         # check polling interval parameter
         try:
@@ -143,36 +148,42 @@ class BasePlugin:
             Domoticz.Error("No warncellId / regionType set - please update setting.")
             raise ValueError("warncellId and regionType must be given.")
  
+        # TODO check images
+            
+        # TODO create device now and feature
+        # Check if devices need to be created
+        createDevices()
+
+        # init with empty data
+        updateDevice(UNIT_NOW_SWITCH_IDX, 0, "No Data", "DWD"+UNIT_NOW_NAME_SUFFIX)
+        updateDevice(UNIT_FUTURE_SWITCH_IDX, 0, "No Data", "DWD"+UNIT_FUTURE_NAME_SUFFIX)
+ 
         self.regionType = RegionType.getByName(self.region)
         self.defName = None
         # init and check dwd
-        self.dwd = Dwd(self.warncellId, self.regionType)
+        self.dwd = Dwd(self.warncellId, self.regionType, self.debug, self.test)
         Domoticz.Debug("check if configuration fits...")
         if self.dwd.doesWarnCellExist():
             Domoticz.Log("DWD Configuration allright - continue")
-
-            # TODO check images
-            
-            # TODO create device now and feature
-            # Check if devices need to be created
-            createDevices()
-
-            # init with empty data
-            updateDevice(UNIT_NOW_SWITCH_IDX, 0, "No Data", "DWD"+UNIT_NOW_NAME_SUFFIX)
-            updateDevice(UNIT_FUTURE_SWITCH_IDX, 0, "No Data", "DWD"+UNIT_FUTURE_NAME_SUFFIX)
-
-            #createDevice(unit=i + UNIT_DEV_START_IDX, devName=mac, devId=mac)
-            # init with empty data
-            #updateDeviceByDevId(devId=mac, alarmLevel=0, alarmData="No Data jet", name=mac)
-            
-            
-            if self.debug is True and self.dwd is not None:
-                self.dwd.dumpConfig()
-            else:
-                Domoticz.Debug('dwd is None')
+            # show name
+            n = self.dwd.getDeviceName()
+            updateDevice(UNIT_NOW_SWITCH_IDX, 0, "No Data", n+UNIT_NOW_NAME_SUFFIX)
+            updateDevice(UNIT_FUTURE_SWITCH_IDX, 0, "No Data", n+UNIT_FUTURE_NAME_SUFFIX)
+        
         else:
             Domoticz.Error("Please verify configuration")
+            updateDevice(UNIT_NOW_SWITCH_IDX, 0, "Wrong Configuration", "DWD"+UNIT_NOW_NAME_SUFFIX)
+            updateDevice(UNIT_FUTURE_SWITCH_IDX, 0, "Wrong Configuration", "DWD"+UNIT_FUTURE_NAME_SUFFIX)
             self.dwd=None
+
+        
+            
+            
+        if self.debug is True and self.dwd is not None:
+            self.dwd.dumpConfig()
+        else:
+            Domoticz.Debug('dwd is None')
+        
 
        
     def onStop(self):
