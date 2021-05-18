@@ -121,6 +121,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+docu_dwd/
 
 info.prv
 test_prv.py

@@ -3,17 +3,24 @@ import unittest
 import sys
 import logging
 import codecs
-
-
-sys.path.insert(0, "..")
-from dwd.dwd import Dwd, DwdAlertColor, DwdIcons, Severity, RegionType, RegionTypeCommon, RegionTypeWarning
+from dwd.dwd import (
+    Dwd,
+    DwdAlertColor,
+    DwdDetailLevel,
+    DwdIcons,
+    Severity,
+    RegionType,
+    RegionTypeCommon,
+    RegionTypeWarning,
+)
 import configparser
 
+sys.path.insert(0, "..")
 CONFIG_SECTION_MY = "dwd_my"
 CONFIG_SECTION_GEMEINDE_OBERSTDORF = "dwd_Gemeinde_Oberstdorf"
 CONFIG_SECTION_KREIS_OBERALLGAEU = "dwd_Kreis_Oberallgaeu"
 
-CONFIG_SECTION_KREIS_OBERHAVEL ="dwd_Kreis_Oberhavel"
+CONFIG_SECTION_KREIS_OBERHAVEL = "dwd_Kreis_Oberhavel"
 
 CONFIG_SECTION_STADT_GREIZ = "dwd_Stadt_Greiz"
 CONFIG_SECTION_BUGGY = "dwd_buggy"
@@ -32,7 +39,7 @@ class Test_dwd(unittest.TestCase):
 
     def tearDown(self):
         logging.getLogger().info("# tear down: test for dwd")
-        #if self.dwd:
+        # if self.dwd:
         #    self.dwd.reset()
         #    self.dwd = None
 
@@ -40,12 +47,12 @@ class Test_dwd(unittest.TestCase):
         logger.removeHandler(self.stream_handler)
 
     def test_Enums(self):
-        m=Severity.__members__
+        m = Severity.__members__
         self.assertIsNotNone(m)
-        minor=Severity.getByName("Minor")
+        minor = Severity.getByName("Minor")
         self.assertIsNotNone(minor)
 
-        srv=Severity.getByName("Severe")
+        srv = Severity.getByName("Severe")
         self.assertIsNotNone(srv)
 
         maxS = Severity.max(minor, srv)
@@ -57,69 +64,68 @@ class Test_dwd(unittest.TestCase):
         maxS = Severity.max(srv, None)
         self.assertEquals(maxS, srv)
 
-        maxS = Severity.max(None,srv)
+        maxS = Severity.max(None, srv)
         self.assertEquals(maxS, srv)
 
-
-
-        m=RegionTypeCommon.__members__
+        m = RegionTypeCommon.__members__
         self.assertIsNotNone(m)
-        rC=RegionTypeCommon.KREIS
+        rC = RegionTypeCommon.KREIS
         self.assertIsNotNone(rC)
 
-        m=RegionTypeWarning.__members__
+        m = RegionTypeWarning.__members__
         self.assertIsNotNone(m)
-        rW=RegionTypeWarning.KREIS
+        rW = RegionTypeWarning.KREIS
         self.assertIsNotNone(rW)
 
-        m=RegionType.__members__
+        m = RegionType.__members__
         self.assertIsNotNone(m)
-        rt=RegionType.KREIS
+        rt = RegionType.KREIS
         self.assertIsNotNone(rt)
-        rt2=RegionType.getByName("Kreis")
+        rt2 = RegionType.getByName("Kreis")
         self.assertIsNotNone(rt2)
-        self.assertEquals(rt,rt2)
+        self.assertEquals(rt, rt2)
 
-        cl=DwdAlertColor.getBySeverity(random.choice(list(Severity)))
+        cl = DwdAlertColor.getBySeverity(random.choice(list(Severity)))
         self.assertIsNotNone(cl)
-        
-
 
     def test_EnumIcon(self):
-        c=DwdIcons.RAIN
+        c = DwdIcons.RAIN
         self.assertIsNotNone(c)
-        s=c.getUrl
+        s = c.getUrl
         self.assertIsNotNone(s)
-        logging.getLogger().info(
-            "icon:{}\t url is:{}".format(c.name, s)
-        )
+        logging.getLogger().info("icon:{}\t url is:{}".format(c.name, s))
         icn = random.choice(list(DwdIcons))
         self.assertIsNotNone(icn)
 
-    
-    def test_EnumColor(self):
-        c=DwdAlertColor.DARK_RED
+    def test_EnumDetail(self):
+        c = DwdDetailLevel.EVENT
         self.assertIsNotNone(c)
-        l=c.severity
-        h=c.hexColor
+
+        logging.getLogger().info(
+            "details:{}\tdetails:{}\ticon:{} ".format(c.name, c.showDetails, c.showIcon)
+        )
+        c2 = DwdDetailLevel.getByName("event")
+        self.assertEquals(c, c2)
+
+    def test_EnumColor(self):
+        c = DwdAlertColor.DARK_RED
+        self.assertIsNotNone(c)
+        # l = c.severity
+        h = c.hexColor
         self.assertIsNotNone(c)
         self.assertIsNotNone(h)
-        sH=c.getColorAsHexString()
+        sH = c.getColorAsHexString()
         self.assertIsNotNone(sH)
-        logging.getLogger().info(
-            "color:{}\t colorHex is:{}".format(c.name, sH)
-        )
-        self.assertEquals("#880e4f",sH)
+        logging.getLogger().info("color:{}\t colorHex is:{}".format(c.name, sH))
+        self.assertEquals("#880e4f", sH)
 
-        sR=c.getColorAsRGBString()
-        logging.getLogger().info(
-            "color:{}\t colorRGB is:{}".format(c.name, sR)
-        )
-        self.assertEquals("rgb(136, 14, 79)",sR)
+        sR = c.getColorAsRGBString()
+        logging.getLogger().info("color:{}\t colorRGB is:{}".format(c.name, sR))
+        self.assertEquals("rgb(136, 14, 79)", sR)
 
-        c2=DwdAlertColor.getBySeverity(Severity.Extreme)
+        c2 = DwdAlertColor.getBySeverity(Severity.Extreme)
         self.assertIsNotNone(c2)
-        self.assertEquals(c,c2)
+        self.assertEquals(c, c2)
 
     def test_myDwd(self):
         """
@@ -137,29 +143,20 @@ class Test_dwd(unittest.TestCase):
         """
         takes standrad warncell from common config and tests it
         """
-   
+
         config = configparser.ConfigParser()
         config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
-        self.dwd = self.readAndCreate(
-            aConfig=config,
-            aSection=CONFIG_SECTION_GEMEINDE_OBERSTDORF            
-        )
+        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_GEMEINDE_OBERSTDORF)
         self.doWork(self.dwd)
-       
-
-
 
     def test_Kreis_Oberallgaeu(self):
         """
         takes standrad warncell from common config and tests it
         """
-   
+
         config = configparser.ConfigParser()
         config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
-        self.dwd = self.readAndCreate(
-            aConfig=config,
-            aSection=CONFIG_SECTION_KREIS_OBERALLGAEU
-        )
+        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_KREIS_OBERALLGAEU)
         self.doWork(self.dwd)
         self.dwd.readContent()
         self.dwd.dumpStatus()
@@ -169,37 +166,27 @@ class Test_dwd(unittest.TestCase):
         """
         takes standrad warncell from common config and tests it
         """
-   
+
         config = configparser.ConfigParser()
         config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
-        self.dwd = self.readAndCreate(
-            aConfig=config,
-            aSection=CONFIG_SECTION_KREIS_OBERHAVEL
-        )
+        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_KREIS_OBERHAVEL)
         self.doWork(self.dwd)
         self.dwd.readContent()
         self.dwd.dumpStatus()
         self.assertTrue(self.dwd.needsUpdate(), "fresh init so we need an update")
 
-
     def test_Stadt_Greiz(self):
         """
         takes warncell for Stadt Greiz
         """
-   
+
         config = configparser.ConfigParser()
         config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
-        self.dwd = self.readAndCreate(
-            aConfig=config,
-            aSection=CONFIG_SECTION_STADT_GREIZ
-        )
+        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_STADT_GREIZ)
         self.doWork(self.dwd)
         self.dwd.readContent()
         self.dwd.dumpStatus()
-        self.assertTrue(self.dwd.needsUpdate(), "fresh init so we need an update")    
-        
-        
-        
+        self.assertTrue(self.dwd.needsUpdate(), "fresh init so we need an update")
 
     def test_Buggy_Entry(self):
         """
@@ -207,21 +194,12 @@ class Test_dwd(unittest.TestCase):
         """
         config = configparser.ConfigParser()
         config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
-        self.dwd = self.readAndCreate(
-            aConfig=config,
-            aSection=CONFIG_SECTION_BUGGY            
-        )
+        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_BUGGY)
         self.doWork(self.dwd)
         self.assertTrue(self.dwd.hasErrorX())
         self.assertIsNotNone(self.dwd.getErrorMsg())
 
- 
-
-    def readAndCreate(
-        self,
-        aConfig,
-        aSection
-    ):
+    def readAndCreate(self, aConfig, aSection):
         """creates a dwd object based on config
 
         Args:
@@ -235,12 +213,9 @@ class Test_dwd(unittest.TestCase):
             "we need this set up:  " + aSection,
         )
         cellId = aConfig.get(aSection, "cellId")
-        region  = aConfig.get(aSection, "region")
-        rT : RegionType = RegionType.getByName(region)
-        aDwd = Dwd(
-            dwdWarnCellId=cellId,
-            regionType=rT
-        )
+        region = aConfig.get(aSection, "region")
+        rT: RegionType = RegionType.getByName(region)
+        aDwd = Dwd(dwdWarnCellId=cellId, regionType=rT)
         return aDwd
 
     def doWork(self, aDwd: Dwd):
@@ -249,9 +224,8 @@ class Test_dwd(unittest.TestCase):
         Args:
             aDwd (Dwd): the object to test
         """
-        self.assertIsNotNone(
-            aDwd, "We do not an object of bsr, otherwise no tests are possible"
-        )
+
+        self.assertIsNotNone(aDwd, "We do not an object of bsr, otherwise no tests are possible")
         aDwd.dumpConfig()
         aDwd.doesWarnCellExist()
         aDwd.dumpStatus()
@@ -259,17 +233,15 @@ class Test_dwd(unittest.TestCase):
         aDwd.dumpStatus()
         self.assertTrue(self.dwd.needsUpdate(), "fresh init so we need an update")
         aDwd.readContent()
-        #self.assertFalse(self.dwd.needsUpdate(), "quick re-read should not force a need for update")
+        # self.assertFalse(self.dwd.needsUpdate(), "quick re-read should not force a need for update")
         self.assertTrue(self.dwd.needsUpdate(), "no optimization done - so always update")
-        t=aDwd.getAlarmText()
+        t = aDwd.getAlarmText()
         self.assertIsNotNone(t)
-        i=aDwd.getAlarmLevel()
+        i = aDwd.getAlarmLevel()
         self.assertIsNotNone(i)
-        #logging.getLogger().info("#onHeartBeat: test for fp")
-        logging.getLogger().info("Level: {}:\t{}".format(i,t))
+        # logging.getLogger().info("#onHeartBeat: test for fp")
+        logging.getLogger().info("Level: {}:\t{}".format(i, t))
         logging.getLogger().info(aDwd.getSummary())
-        
-
 
 
 if "__main__" == __name__:

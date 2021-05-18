@@ -2,8 +2,9 @@ from datetime import datetime
 import re
 import dateutil.parser
 
-BLZ_DEBUG:str="Debug"
-BLZ_TEST:str="Test"
+BLZ_DEBUG: str = "Debug"     # constant string used to check domoticz configuration
+BLZ_TEST: str = "Test"       # constant string used to check domoticz configuration
+
 
 def isBlank(myString: str) -> bool:
     """
@@ -21,7 +22,8 @@ def isBlank(myString: str) -> bool:
 
 
 def isNotBlank(myString: str) -> bool:
-    """checks a string for empty or blank.
+    """
+    checks a string for empty or blank.
     true: myString is not None AND myString is not empty or blank
     false: myString is None OR myString is empty or blank
 
@@ -33,20 +35,22 @@ def isNotBlank(myString: str) -> bool:
     """
     return bool(myString and myString.strip())
 
-def contains(myString:str, mySearchString:str) -> bool:
-    if( not mySearchString and myString):
+
+def contains(myString: str, mySearchString: str) -> bool:
+    if not mySearchString and myString:
         return False
-    if( not myString and mySearchString):
+    if not myString and mySearchString:
         return False
     return mySearchString.upper() in myString.upper()
-    
 
-def containsDebug(myString:str) -> bool:
+
+def containsDebug(myString: str) -> bool:
     return contains(myString=myString, mySearchString=BLZ_DEBUG)
 
 
-def containsTest(myString:str) -> bool:
+def containsTest(myString: str) -> bool:
     return contains(myString=myString, mySearchString=BLZ_TEST)
+
 
 def isValidMAC(mac: str) -> bool:
     """checks given string for MAC-Pattern
@@ -57,29 +61,29 @@ def isValidMAC(mac: str) -> bool:
     Returns:
         boolean: if string looks like MAC, we return true
     """
-    if(re.match("[0-9a-f]{2}([-:]?)[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$", mac.lower())):
+    if re.match(
+        "[0-9a-f]{2}([-:]?)[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$", mac.lower()
+    ):
         return True
     return False
 
-def parseIsoDate(sDate:str) -> datetime:
+
+def parseIsoDate(sDate: str) -> datetime:
     return dateutil.parser.isoparse(sDate)
 
-def hex_to_rgb(sHexValue:str):
-    #sHexValue = sHexValue.lstrip('#')
-    #
-    #return tuple(int(sHexValue[i:i+2], 16) for i in (0, 2, 4))
-    hex = sHexValue.lstrip('#')
-    hlen = len(hex)
-    #return tuple(int(hex[i:i+hlen/3], 16) / 255.0 for i in range(0, hlen, hlen/3))
-    #return tuple(int(sHexValue[i:i+2], 16) for i in (0, 2, 4))
-    value = sHexValue.lstrip('#')
+
+def hex_to_rgb(sHexValue: str):
+    value = sHexValue.lstrip("#")
     lv = len(value)
     return tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
 
-def rgb_to_hex(rgb):
-    return '#%02x%02x%02x' % rgb
 
-############################################    
+def rgb_to_hex(rgb):
+    return "#%02x%02x%02x" % rgb
+
+
+############################################
+
 
 def abstractfunc(func):
     func.__isabstract__ = True
@@ -87,6 +91,12 @@ def abstractfunc(func):
 
 
 class Interface(type):
+
+    """own interface super type to deal better with abstract methods
+
+    Args:
+        type ([type]): [description]
+    """
     def __init__(self, name, bases, namespace):
         for base in bases:
             must_implement = getattr(base, "abstract_methods", [])
@@ -101,15 +111,15 @@ class Interface(type):
 
     def __new__(metaclass, name, bases, namespace):
         namespace["abstract_methods"] = Interface._get_abstract_methods(
-            namespace)
+            namespace
+        )
         namespace["all_methods"] = Interface._get_all_methods(namespace)
         cls = super().__new__(metaclass, name, bases, namespace)
         return cls
 
     def _get_abstract_methods(namespace):
         return [
-            name
-            for name, val in namespace.items()
+            name for name, val in namespace.items()
             if callable(val) and getattr(val, "__isabstract__", False)
         ]
 
@@ -118,6 +128,12 @@ class Interface(type):
 
 
 class BlzHelperInterface(metaclass=Interface):
+
+    """common interface for blz help classes so it easier to interact with them from plugin side.
+
+    Args:
+        metaclass ([type], optional): [description]. Defaults to Interface.
+    """
     @abstractfunc
     def needsUpdate(self) -> bool:
         """does some of the devices need an update
@@ -182,8 +198,7 @@ class BlzHelperInterface(metaclass=Interface):
 
     @abstractfunc
     def stop(self) -> None:
-        """stops internal things
-        """
+        """stops internal things"""
         pass
 
     @abstractfunc
@@ -209,4 +224,3 @@ class BlzHelperInterface(metaclass=Interface):
     def getErrorMsg(self) -> str:
         """returns the error message if exists"""
         pass
-
