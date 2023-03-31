@@ -52,6 +52,11 @@ class Test_plugin(unittest.TestCase):
         #TODO call:
         self.plugin.onStart()
 
+    def test_A_onStart_Missing_Conf(self):
+        logging.getLogger().error("please insert test")
+        #TODO call:
+        #self.plugin.onStart()
+
     def test_B_onHeartbeat(self):
         logging.getLogger().info("#fake heart beat")
         #TODO call:

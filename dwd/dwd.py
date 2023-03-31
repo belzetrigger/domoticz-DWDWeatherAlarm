@@ -1,7 +1,8 @@
 from typing import List
 import random
 
-from datetime import datetime # timedelta
+from datetime import datetime, time
+from unittest.runner import TextTestRunner # timedelta
 import requests
 from requests.models import Response
 
@@ -22,9 +23,10 @@ from enum import Enum, unique
 # https://maps.dwd.de/geoserver/dwd/ows?service=WFS&version=2.0.0&request=GetFeature&typeName={region_type}&CQL_FILTER=WARNCELLID=%27{warncellid}%27&OutputFormat=application/json
 # https://maps.dwd.de/geoserver/dwd/ows?service=WFS&version=2.0.0&request=GetFeature&typeName={region_type}&CQL_FILTER={cql_filter_property}=%27{warncellid}%27&OutputFormat=application/json
 
-URL_CHECK = "https://maps.dwd.de/geoserver/dwd/ows?service=WFS&version=2.0.0&request=GetFeature&typeName={REGION_TYPE_COMMON}&CQL_FILTER=WARNCELLID=%27{WARNCELL_ID}%27&OutputFormat=application/json"
-
-URL_WARNING = "https://maps.dwd.de/geoserver/dwd/ows?service=WFS&version=2.0.0&request=GetFeature&typeName={REGION_TYPE_WARN}&CQL_FILTER={FILTER_PROP}=%27{WARNCELL_ID}%27&OutputFormat=application/json"
+SERVER_PROD = "https://maps.dwd.de/geoserver/dwd/ows?"
+SERVER_FALLBACK = "https://brz-maps.dwd.de/geoserver/wfs?"
+URL_CHECK = "{SERVER}service=WFS&version=2.0.0&request=GetFeature&typeName={REGION_TYPE_COMMON}&CQL_FILTER=WARNCELLID=%27{WARNCELL_ID}%27&OutputFormat=application/json"
+URL_WARNING = "{SERVER}service=WFS&version=2.0.0&request=GetFeature&typeName={REGION_TYPE_WARN}&CQL_FILTER={FILTER_PROP}=%27{WARNCELL_ID}%27&OutputFormat=application/json"
 # %27711000003%27
 
 URL_ICON = "https://www.dwd.de/DWD/warnungen/warnapp_gemeinden/viewer/img/warndreieck/"
@@ -360,7 +362,7 @@ class Dwd:                                                  # (BlzHelperInterfac
         detailLevel: DwdDetailLevel = DwdDetailLevel.EVENT,
         debug: bool = False,
         test: bool = False,
-        timeout: int = 5
+        timeout: int = 10
     ):
         Domoticz.Debug("create dwd for {}".format(dwdWarnCellId))
         self.warnCellId = dwdWarnCellId
@@ -404,10 +406,13 @@ class Dwd:                                                  # (BlzHelperInterfac
         # self.futureWarnings: List[DwdData]=[]
         # self.futureMaxLevel: int = 0
         # self.futureMax: Severity
+        self.useFallbackCheck: bool = False
+        self.useFallbackWarn: bool = False
         self.reinitData()
         pass
 
     def reinitData(self):
+        self.useFallbackWarn = False
         self.immediateWarnings: List[DwdData] = []
         self.immediateMaxLevel: int = 0
         self.immediateMax: Severity = Severity.NONE
@@ -474,29 +479,37 @@ class Dwd:                                                  # (BlzHelperInterfac
     def needsUpdate(self):
         return self.updateNeeded
 
-    def doesWarnCellExist(self) -> bool:
+    def doesWarnCellExist(self, server: str = SERVER_PROD, timeout: int = None) -> bool:
         """checks if the given warn cell for this region type exists. as warncell and region type must go hand in hand.
 
         Returns:
             bool: true if we could gather some more details
         """
+        if not timeout:
+            timeout = self.timeout
 
         success = False
         url = URL_CHECK.format(
-            REGION_TYPE_COMMON=self.regionType.common.value, WARNCELL_ID=self.warnCellId
+            SERVER=server,
+            REGION_TYPE_COMMON=self.regionType.common.value,
+            WARNCELL_ID=self.warnCellId
         )
         Domoticz.Debug("doesWarnCellExist url:{} ".format(url))
         response: Response = None
         try:
-            response = requests.get(url, timeout=self.timeout)
+            response = requests.get(url, timeout=timeout)
         except requests.exceptions.ReadTimeout as e:
             Domoticz.Error(
-                "doesWarnCellExist: got timeout - could not verify warncell. retry later. {}".
-                format(e)
+                "doesWarnCellExist: got timeout - could not verify warncell. {}".format(e)
             )
             self.setError("Connection Issue: - could not verify settings.")
-            return success
+            # switch to fallback
+            if (self.useFallbackCheck is False):
+                self.useFallbackCheck = True
+                return self.doesWarnCellExist(SERVER_FALLBACK, 2 * self.timeout)
 
+            return success
+        Domoticz.Debug("doesWarnCellExist -> yes url:{} ".format(url))
         if (response and response.status_code == 200):
             jResponse = response.json()
             features = jResponse["features"]
@@ -523,10 +536,19 @@ class Dwd:                                                  # (BlzHelperInterfac
                 self.setError("Connection Issue: - could not verify settings.")
             else:
                 Domoticz.Error(
-                    "Looks like unknown error: invalid WarnCell Id - Please check. Url={} ".
-                    format(url)
+                    "Looks like unknown error: invalid WarnCell Id - Please check. Url={}. Error: {}. We will check for alternative server. "
+                    .format(url, response.content)
                 )
-                self.setError("Connection Issue: - could not verify settings.")
+
+                if (self.useFallbackCheck is False):
+                    self.useFallbackCheck = True
+                    return self.doesWarnCellExist(SERVER_FALLBACK, timeout=self.timeout * 2)
+                else:
+                    self.setError(
+                        "Connection Issue: - could not verify settings. Details={}".format(
+                            response.content
+                        )
+                    )
 
         return success
 
@@ -548,13 +570,16 @@ class Dwd:                                                  # (BlzHelperInterfac
             except Exception as e:
                 Domoticz.Debug("No data for Kreis, Error: {}".format(e))
 
-    def readContent(self):
+    def readContent(self, server: str = SERVER_PROD, timeout: int = None) -> bool:
         # if(self.baseDataInitialized is False):
         #    self.setError("Please init via 'doesWarnCellExist()' DWD first")
         #    return
 
-        # maybe better just call it self
+        if not timeout:
+            timeout = self.timeout
 
+        # maybe better just call it self
+        success: bool = False
         try:
 
             if self.baseDataInitialized is False:
@@ -569,8 +594,10 @@ class Dwd:                                                  # (BlzHelperInterfac
             # TODO for now no optimization, so reset data, if connection problem - old data is lost
 
             self.reinitData()
+            self.resetError()
             self.lastReadTime = datetime.now()
             url = URL_WARNING.format(
+                SERVER=server,
                 REGION_TYPE_WARN=self.regionType.warning.value,
                 FILTER_PROP=self.regionType.filterProp,
                 WARNCELL_ID=self.warnCellId,
@@ -580,7 +607,7 @@ class Dwd:                                                  # (BlzHelperInterfac
             response: Response = None
             # TODO eigener try catch?
             # try:
-            response = requests.get(url, timeout=self.timeout)
+            response = requests.get(url, timeout)
             # except requests.exceptions.ReadTimeout as e:
             #    Domoticz.Error(
             #        "doesWarnCellExist: got timeout - could not verify warncell. retry later. {}".
@@ -598,6 +625,7 @@ class Dwd:                                                  # (BlzHelperInterfac
 
                 for ft in features:
                     self.parseWarning(ft)
+                success = True
                 self.updateNeeded = True
                 Domoticz.Debug("no optimized reading implemented jet - so always update needed")
 
@@ -621,7 +649,14 @@ class Dwd:                                                  # (BlzHelperInterfac
             pass
         except Exception as e:
             Domoticz.Error("Error during reading and parsing {}".format(e))
+
             self.setError(e)
+            if (self.useFallbackWarn is False):
+                Domoticz.Error("regarding to error - we try also alternative url. ")
+                self.useFallbackWarn = True
+                return self.readContent(SERVER_FALLBACK, timeout=self.timeout * 2)
+
+        return success
 
     def parseWarning(self, ft):
         dd = DwdData(ft["properties"])

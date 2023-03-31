@@ -1,0 +1,35 @@
+<!-- Placeholder for page content -->
+<!-- Placeholder for page content -->
+<!-- Placeholder for page content -->
+<div id="plugin-view"></div>
+
+<!-- Template for custom component -->
+<script type="text/ng-template" id="app/myplugin/sampleComponent.html">
+    <div class="container">
+        <a class="btnstylerev" back-button>{{ ::'Back' | translate }}</a>
+        <h2 class="page-header">My Plugin UI</h2>
+        <p>{{ $ctrl.message }}</p>
+    </div>
+</script>
+
+<script>
+    require(['app'], function(app) {
+        // Custom component definition
+        app.component('myPluginRoot', {
+            templateUrl: 'app/myplugin/sampleComponent.html',
+            controller: function($scope, domoticzApi) {
+                var $ctrl = this;
+                $ctrl.message = 'This is my plugin'
+            }
+        });
+
+        // This piece triggers Angular to re-render page with custom components support
+        angular.element(document).injector().invoke(function($compile) {
+            var $div = angular.element('<my-plugin-root />');
+            angular.element('#plugin-view').append($div);
+
+            var scope = angular.element($div).scope();
+            $compile($div)(scope);
+        });
+    });
+</script>

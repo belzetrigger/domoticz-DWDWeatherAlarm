@@ -31,7 +31,7 @@
         <ul style="list-style-type:square">
             <li>WarnCellId - the official warncell Id from DWD see eg. 102000000 for Hamburg see: <a href="https://www.dwd.de/DE/leistungen/opendata/help/warnungen/cap_warncellids_csv.html">WarncellId CSV</a></li>
             <li>RegionType - the matching region type for this warn cell. eg. Landkreise</li>
-            <li>Details - define what to show: name, icon, description /li>
+            <li>Details - define what to show: name, icon, description </li>
         </ul>
 
 
@@ -72,6 +72,9 @@
     </params>
 </plugin>
 """
+# test own html page
+from shutil import copy2, rmtree
+import os
 
 # import datetime as dt
 from datetime import datetime, timedelta
@@ -87,19 +90,24 @@ except ImportError:
 from dwd.dwd import Dwd, DwdDetailLevel, RegionType
 from blz import blzHelperInterface
 
-PARAM_PASS = "123"
+DWD_PARAM_PASS = "123"
 
-POLL_THRESHOLD_MIN_MINUTES = 5                   # minimum time in min to fetch new data
-POLL_THRESHOLD_MAX_MINUTES = 3 * 60              # max time in min to fetch new data aka 3h days
-DEFAULT_POLL_INTERVAL_HOURS = (
-    POLL_THRESHOLD_MIN_MINUTES                   # standard to use if wrong, missing or buggy
-)
-DEFAULT_DETAIL_LEVEL = DwdDetailLevel.EVENT_ICON # standard mode to show in domoticz
-UNIT_NOW_SWITCH_IDX = 1                          # unit index for current warning
-UNIT_FUTURE_SWITCH_IDX = 2                       # unit index for future
+DWD_POLL_THRESHOLD_MIN_MINUTES = 5                   # minimum time in min to fetch new data
+DWD_POLL_THRESHOLD_MAX_MINUTES = 3 * 60              # max time in min to fetch new data aka 3h days
+DWD_DEFAULT_POLL_INTERVAL_MINUTES = DWD_POLL_THRESHOLD_MIN_MINUTES
+DWD_DEFAULT_DETAIL_LEVEL = DwdDetailLevel.EVENT_ICON # standard mode to show in domoticz
+DWD_DEFAULT_DEBUG = False
+DWD_DEFAULT_TEST = False
+DWD_DEFAULT_TIMEOUT = 15                             # default timeout value for requests
 
-UNIT_NOW_NAME_SUFFIX = " (IMM)"
-UNIT_FUTURE_NAME_SUFFIX = " (FUTR)"
+DWD_UNIT_NOW_SWITCH_IDX = 1    # unit index for current warning
+DWD_UNIT_FUTURE_SWITCH_IDX = 2 # unit index for future
+
+DWD_UNIT_NOW_NAME_SUFFIX = " (IMM)"
+DWD_UNIT_FUTURE_NAME_SUFFIX = " (FUTR)"
+
+DWD_PLUGIN_NAME = "DWDWeatherAlarm"
+DWD_HTML_NAME = "html/{}.html".format(DWD_PLUGIN_NAME.lower())
 
 
 class BasePlugin:
@@ -111,8 +119,12 @@ class BasePlugin:
         self.test = False
         self.error = False
         self.nextpoll = datetime.now()
-        self.pollinterval = DEFAULT_POLL_INTERVAL_HOURS
+        self.pollinterval = DWD_DEFAULT_POLL_INTERVAL_MINUTES
         self.errorCounter = 0
+        self.regionType: RegionType = None
+        self.warncellId: str = None
+        self.region: str = None
+        self.detailLevel: DwdDetailLevel = None
         return
 
     def onStart(self):
@@ -132,17 +144,17 @@ class BasePlugin:
         except:
             Domoticz.Error("Invalid polling interval parameter")
         else:
-            if temp < POLL_THRESHOLD_MIN_MINUTES:
-                temp = POLL_THRESHOLD_MIN_MINUTES                              # minimum polling interval
+            if temp < DWD_POLL_THRESHOLD_MIN_MINUTES:
+                temp = DWD_POLL_THRESHOLD_MIN_MINUTES                          # minimum polling interval
                 Domoticz.Error(
                     "Specified polling interval too short: changed to {}".
-                    format(POLL_THRESHOLD_MIN_MINUTES)
+                    format(DWD_POLL_THRESHOLD_MIN_MINUTES)
                 )
-            elif temp > POLL_THRESHOLD_MAX_MINUTES:
-                temp = POLL_THRESHOLD_MAX_MINUTES                              # maximum polling interval is 1 hour
+            elif temp > DWD_POLL_THRESHOLD_MAX_MINUTES:
+                temp = DWD_POLL_THRESHOLD_MAX_MINUTES                          # maximum polling interval is 1 hour
                 Domoticz.Error(
                     "Specified polling interval too long: changed to {} hour".
-                    format(POLL_THRESHOLD_MAX_MINUTES)
+                    format(DWD_POLL_THRESHOLD_MAX_MINUTES)
                 )
             self.pollinterval = temp * 60
         Domoticz.Log("Using polling interval of {} seconds".format(str(self.pollinterval)))
@@ -153,13 +165,14 @@ class BasePlugin:
         if blzHelperInterface.isBlank(self.warncellId) or blzHelperInterface.isBlank(self.region):
             Domoticz.Error("No warncellId / regionType set - please update setting.")
             raise ValueError("warncellId and regionType must be given.")
-
+        else:
+            self.regionType = RegionType.getByName(self.region)
         # check detail level
         if blzHelperInterface.isBlank(Parameters["Mode3"]):
-            Domoticz.Log(
-                "No Detail level defined use default: {}".format(DEFAULT_DETAIL_LEVEL.name)
+            Domoticz.Error(
+                "No Detail level defined use default: {}".format(DWD_DEFAULT_DETAIL_LEVEL.name)
             )
-            self.detailLevel: DwdDetailLevel = DEFAULT_DETAIL_LEVEL
+            self.detailLevel: DwdDetailLevel = DWD_DEFAULT_DETAIL_LEVEL
         else:
             self.detailLevel: DwdDetailLevel = DwdDetailLevel.getByName(Parameters["Mode3"])
         Domoticz.Debug("Use detail level: {}".format(self.detailLevel.name))
@@ -171,39 +184,42 @@ class BasePlugin:
         createDevices()
 
         # init with empty data
-        updateDevice(UNIT_NOW_SWITCH_IDX, 0, "No Data", "DWD" + UNIT_NOW_NAME_SUFFIX)
-        updateDevice(UNIT_FUTURE_SWITCH_IDX, 0, "No Data", "DWD" + UNIT_FUTURE_NAME_SUFFIX)
+        updateDevice(DWD_UNIT_NOW_SWITCH_IDX, 0, "No Data", "DWD" + DWD_UNIT_NOW_NAME_SUFFIX)
+        updateDevice(DWD_UNIT_FUTURE_SWITCH_IDX, 0, "No Data", "DWD" + DWD_UNIT_FUTURE_NAME_SUFFIX)
 
-        self.regionType = RegionType.getByName(self.region)
         self.defName = None
         # init and check dwd
-        self.dwd = Dwd(self.warncellId, self.regionType, self.detailLevel, self.debug, self.test)
+        # self.dwd = cDwd(self.warncellId, self.regionType, self.detailLevel, self.debug, self.test)
+        self.dwd = self.createHelper()
+        # TODO dwd can be still None!!!!
+        #      maybe lets check config on hearbeat is better
+
         Domoticz.Debug("check if configuration fits...")
-        if self.dwd.doesWarnCellExist():
+        if self.dwd and self.dwd.doesWarnCellExist():
             Domoticz.Log("DWD Configuration allright - continue")
             # show name
             n = self.dwd.getDeviceName()
-            updateDevice(UNIT_NOW_SWITCH_IDX, 0, "No Data", n + UNIT_NOW_NAME_SUFFIX)
-            updateDevice(UNIT_FUTURE_SWITCH_IDX, 0, "No Data", n + UNIT_FUTURE_NAME_SUFFIX)
+            updateDevice(DWD_UNIT_NOW_SWITCH_IDX, 0, "No Data", n + DWD_UNIT_NOW_NAME_SUFFIX)
+            updateDevice(DWD_UNIT_FUTURE_SWITCH_IDX, 0, "No Data", n + DWD_UNIT_FUTURE_NAME_SUFFIX)
 
         else:
             Domoticz.Error("Please verify configuration and look into logs.")
             msg: str = "Wrong Configuration"
             # check for error detail
-            if (self.dwd.hasErrorX):
+            if (self.dwd and self.dwd.hasErrorX):
                 msg = self.dwd.getErrorMsg()
 
             updateDevice(
-                UNIT_NOW_SWITCH_IDX,
+                DWD_UNIT_NOW_SWITCH_IDX,
                 0,
                 msg,
-                "DWD" + UNIT_NOW_NAME_SUFFIX,
+                "DWD" + DWD_UNIT_NOW_NAME_SUFFIX,
             )
             updateDevice(
-                UNIT_FUTURE_SWITCH_IDX,
+                DWD_UNIT_FUTURE_SWITCH_IDX,
                 0,
                 msg,
-                "DWD" + UNIT_FUTURE_NAME_SUFFIX,
+                "DWD" + DWD_UNIT_FUTURE_NAME_SUFFIX,
             )
             # TODO auf NONE setzen oder nicht?
             # self.dwd = None
@@ -213,10 +229,88 @@ class BasePlugin:
         else:
             Domoticz.Debug("dwd is None")
 
+        self.htmlSource = "./plugins/{}/{}".format(DWD_PLUGIN_NAME, DWD_HTML_NAME)
+        self.htmlTarget = './www/templates/{}.html'.format(DWD_PLUGIN_NAME)
+
+        self.install()
+
     def onStop(self):
+        Domoticz.Log("onStop called")
         if self.dwd is not None:
             self.dwd.stop()
-        Domoticz.Log("onStop called")
+        self.uninstall()
+
+    def install(self):
+        Domoticz.Log('Installing plugin custom page...')
+
+        try:
+            source_path = Parameters['HomeFolder'] + 'html'
+            templates_path = Parameters['StartupFolder'] + 'www/templates'
+            dst_plugin_path = templates_path + '/dwdWeatherAlarm'
+
+            Domoticz.Debug('Copying files from ' + source_path + ' to ' + templates_path)
+
+            if not (os.path.isdir(dst_plugin_path)):
+                os.makedirs(dst_plugin_path)
+
+            copy2(source_path + '/dwdWeatherAlarm.html', templates_path)
+            copy2(source_path + '/dwdWeatherAlarm.js', templates_path)
+            # Libs
+            copy2(source_path + '/libs/leaflet.js', dst_plugin_path)
+            copy2(source_path + '/libs/leaflet.css', dst_plugin_path)
+
+            Domoticz.Log('Installing plugin custom page completed.')
+        except Exception as e:
+            Domoticz.Error('Error during installing plugin custom page')
+            Domoticz.Error(repr(e))
+
+    def uninstall(self):
+        Domoticz.Log('Uninstalling plugin custom page...')
+
+        try:
+            templates_path = Parameters['StartupFolder'] + 'www/templates'
+            dst_plugin_path = templates_path + '/dwdWeatherAlarm'
+
+            Domoticz.Debug('Removing files from ' + templates_path)
+
+            if (os.path.isdir(dst_plugin_path)):
+                rmtree(dst_plugin_path)
+
+            if os.path.exists(templates_path + "/dwdWeatherAlarm.html"):
+                os.remove(templates_path + "/dwdWeatherAlarm.html")
+
+            if os.path.exists(templates_path + "/dwdWeatherAlarm.js"):
+                os.remove(templates_path + "/dwdWeatherAlarm.js")
+
+            Domoticz.Log('Uninstalling plugin custom page completed.')
+        except Exception as e:
+            Domoticz.Error('Error during uninstalling plugin custom page')
+            Domoticz.Error(repr(e))
+
+    def createHelper(self) -> Dwd:
+        newDwd: Dwd = None
+        if (self.regionType and self.warncellId):
+            # deeper check for details
+            if (self.detailLevel is not None and self.debug is not None and self.test is not None):
+                newDwd = Dwd(
+                    self.warncellId, self.regionType, self.detailLevel, self.debug, self.test,
+                    DWD_DEFAULT_TIMEOUT
+                )
+            else:
+                Domoticz.Error("Not complet hardware configuration, use defaults")
+                newDwd = Dwd(
+                    self.warncellId, self.regionType, DWD_DEFAULT_DETAIL_LEVEL, DWD_DEFAULT_DEBUG,
+                    DWD_DEFAULT_TEST, DWD_DEFAULT_TIMEOUT
+                )
+
+        else:
+            Domoticz.Error(
+                (
+                    "Buggy settings, we cannot create Helper for DWD. "
+                    "Please check hardware configuration"
+                )
+            )
+        return newDwd
 
     def onConnect(self, Connection, Status, Description):
         Domoticz.Log("onConnect called")
@@ -248,9 +342,9 @@ class BasePlugin:
 
             # TODO handle dwd is None
             if self.dwd is None:
-                Domoticz.Error("Uuups. Dwd is None. Try to recreate.")
-                self.dwd = Dwd(self.warncellId, self.regionType)
-                self.dwd.doesWarnCellExist()
+                Domoticz.Error("Dwd is None. Try to recreate. And wait for next polltime")
+                self.dwd = self.createHelper()
+                # self.dwd.doesWarnCellExist() better not interaction
 
             self.nextpoll = myNow + timedelta(seconds=self.pollinterval)
 
@@ -261,12 +355,13 @@ class BasePlugin:
             if self.dwd is None or self.dwd.hasErrorX() is True:
                 self.errorCounter += 1
                 if self.errorCounter % 10 == 0:
-                    Domoticz.Log(
+                    Domoticz.Error(
                         "got {} times an error, wait 10 min before try again".format(
                             self.errorCounter
                         )
                     )
                     # TODO maybe reset?
+                    self.dwd.reset()
                     self.nextpoll = myNow + timedelta(minutes=10)
                     return
 
@@ -277,8 +372,12 @@ class BasePlugin:
                 if self.dwd is not None and self.dwd.hasErrorX() is True:
                     t = "{}:{}".format(t, self.dwd.getErrorMsg())
 
-                updateDeviceByUnit(UNIT_NOW_SWITCH_IDX, 0, t, "Error" + UNIT_NOW_NAME_SUFFIX)
-                updateDeviceByUnit(UNIT_FUTURE_SWITCH_IDX, 0, t, "Error" + UNIT_FUTURE_NAME_SUFFIX)
+                updateDeviceByUnit(
+                    DWD_UNIT_NOW_SWITCH_IDX, 0, t, "Error" + DWD_UNIT_NOW_NAME_SUFFIX
+                )
+                updateDeviceByUnit(
+                    DWD_UNIT_FUTURE_SWITCH_IDX, 0, t, "Error" + DWD_UNIT_FUTURE_NAME_SUFFIX
+                )
 
                 self.nextpoll = myNow
             else:
@@ -290,10 +389,10 @@ class BasePlugin:
                     name = self.dwd.getDeviceName()
                     # TODO as we change name but updateDevice is not checking this, we say alwaysUpdate
                     updateDevice(
-                        UNIT_NOW_SWITCH_IDX,
+                        DWD_UNIT_NOW_SWITCH_IDX,
                         alarmLevel,
                         summary,
-                        name + UNIT_NOW_NAME_SUFFIX,
+                        name + DWD_UNIT_NOW_NAME_SUFFIX,
                         True,
                     )
 
@@ -303,10 +402,10 @@ class BasePlugin:
 
                     # TODO as we change name but updateDevice is not checking this, we say alwaysUpdate
                     updateDevice(
-                        UNIT_FUTURE_SWITCH_IDX,
+                        DWD_UNIT_FUTURE_SWITCH_IDX,
                         alarmLevelFut,
                         summaryFut,
-                        nameFut + UNIT_FUTURE_NAME_SUFFIX,
+                        nameFut + DWD_UNIT_FUTURE_NAME_SUFFIX,
                         True,
                     )
                     self.lastUpdate = myNow
@@ -367,7 +466,7 @@ def DumpConfigToLog():
     for x in Parameters:
         if Parameters[x] != "":
             value: str = str(Parameters[x])
-            if x == PARAM_PASS:
+            if x == DWD_PARAM_PASS:
                 value = "xxx"
             Domoticz.Debug("{}:\t{}".format(x, value))
     Domoticz.Debug("Device count: " + str(len(Devices)))
@@ -470,14 +569,16 @@ def createDevices():
     this creates the alarm device for warning
     """
     # create the mandatory child devices if not yet exist
-    if UNIT_NOW_SWITCH_IDX not in Devices:
-        Domoticz.Device(Name="DWD Immediate", Unit=UNIT_NOW_SWITCH_IDX, TypeName="Alert",
-                        Used=1).Create()
-        Domoticz.Log("Devices[{}] created.".format(UNIT_NOW_SWITCH_IDX))
-    if UNIT_FUTURE_SWITCH_IDX not in Devices:
-        Domoticz.Device(Name="DWD Future", Unit=UNIT_FUTURE_SWITCH_IDX, TypeName="Alert",
-                        Used=1).Create()
-        Domoticz.Log("Devices[{}] created.".format(UNIT_FUTURE_SWITCH_IDX))
+    if DWD_UNIT_NOW_SWITCH_IDX not in Devices:
+        Domoticz.Device(
+            Name="DWD Immediate", Unit=DWD_UNIT_NOW_SWITCH_IDX, TypeName="Alert", Used=1
+        ).Create()
+        Domoticz.Log("Devices[{}] created.".format(DWD_UNIT_NOW_SWITCH_IDX))
+    if DWD_UNIT_FUTURE_SWITCH_IDX not in Devices:
+        Domoticz.Device(
+            Name="DWD Future", Unit=DWD_UNIT_FUTURE_SWITCH_IDX, TypeName="Alert", Used=1
+        ).Create()
+        Domoticz.Log("Devices[{}] created.".format(DWD_UNIT_FUTURE_SWITCH_IDX))
 
 
 #

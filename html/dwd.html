@@ -1,0 +1,119 @@
+<div id="plugin-view"></div>
+
+<link rel="stylesheet" href="/templates/dwd/leaflet.css">
+
+<style>
+    .leaflet-container {
+        background-color: white;
+    }
+
+    .dwd-header {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .dwd-header>.btn-group {
+        text-align: center;
+    }
+</style>
+
+<!-- Template for custom component -->
+<script type="text/ng-template" id="app/dwd/dwd.html">
+    <div class="container">
+        <div class="dwd-header">
+            <div>
+                <a class="btnstylerev" back-button>{{ ::'Back' | translate }}</a>
+            </div>
+            <!-- fall back or testing buttons in dz style
+            -->
+            <div class="btn-group">
+                <button class="btn btn-default"
+                        ng-show="$ctrl.pluginApiDevices.length > 1"
+                        ng-repeat="device in $ctrl.pluginApiDevices"
+                        ng-class="{'active': device.idx === $ctrl.selectedApiDeviceIdx}"
+                        ng-click="$ctrl.selectPlugin(device.idx)">
+                    {{::device.HardwareName}}
+                </button>
+            </div>
+
+
+            <h2 class="page-header">DWD Weather Alarm Plugin UI</h2>
+
+
+            <div class="align-right" ng-if="$ctrl.controllerInfo">
+                <label>
+                   {{$ctrl.controllerInfo.HardwareID}}
+                   {{$ctrl.controllerInfo.HardwareName}}
+                   {{$ctrl.controllerInfo.HardwareType}}
+                   {{$ctrl.controllerInfo.HardwareDisabled}}
+                </label>
+            </div>
+
+             <p>{{ $ctrl.message }}</p>
+
+        </div>
+
+
+        <dwd-tabs
+            >
+            <dwd-pane
+            ng-repeat="device in $ctrl.pluginApiDevices"
+            title={{::device.HardwareName}}
+
+            devices="$ctrl.devices"
+            on-update="$ctrl.onUpdate(device)"
+            on-select="$ctrl.selectDwdDevice(device)"
+            />
+
+
+        </dwd-tabs>
+        <dwd-tabs/>
+
+    </div>
+</script>
+
+<script type="text/ng-template" id="app/dwd/dwdTabs.html">
+    <div class="tabbable">
+    <ul class="nav nav-tabs">
+        <!--
+        <li ng-repeat="device in $ctrl.pluginApiDevices"
+            ng-class="{'active': device.idx === $ctrl.selectedApiDeviceIdx}">
+        <a href="" ng-click="$ctrl.selectPlugin(device.idx)">asasas</a>
+        </li>
+        -->
+
+
+        <li ng-repeat="pane in $ctrl.panes" ng-class="{active:pane.selected}">
+        <a href="" ng-click="$ctrl.select(pane); $ctrl.selectPlugin(pane.deviceIdx)">{{pane.title}}({{pane.pluginIdx}})</a>
+        </li>
+
+
+
+    </ul>
+    <div class="tab-content" ng-transclude></div>
+    </div>
+</script>
+
+<script type="text/ng-template" id="app/dwd/dwdPane.html">
+    <div class="tab-pane"
+
+        ng-show="$ctrl.selected" ng-transclude>
+        <label>
+            Titel: {{this.title}}
+        </label>
+    </div>
+</script>
+
+
+<script>
+    require(['../templates/dwd'], function () {
+        angular.element(document).injector().invoke(function ($compile) {
+            var $div = angular.element('<dwd-plugin />');
+            angular.element('#plugin-view').append($div);
+
+            var scope = angular.element($div).scope();
+            $compile($div)(scope);
+        });
+
+    });
+</script>

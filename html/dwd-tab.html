@@ -1,0 +1,14 @@
+<div class="tabbable">
+  <ul class="nav nav-tabs">
+    <li ng-repeat="pane in $ctrl.panes" ng-class="{active:pane.selected}">
+      <a href="" ng-click="$ctrl.select(pane)">{{pane.title}}</a>
+    </li>
+  </ul>
+  <div class="tab-content" ng-transclude></div>
+</div>
+
+<!--
+Copyright 2021 Google LLC. All Rights Reserved.
+Use of this source code is governed by an MIT-style license that
+can be found in the LICENSE file at http://angular.io/license
+-->

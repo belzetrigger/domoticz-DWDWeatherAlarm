@@ -1,0 +1,106 @@
+<div id="plugin-view"></div>
+
+<link rel="stylesheet" href="/templates/dwdWeatherAlarm/leaflet.css">
+
+<style>
+    .leaflet-container {
+        background-color: white;
+    }
+
+    .dwd-header {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .dwd-header > .btn-group {
+        text-align: center;
+    }
+</style>
+
+<!-- Template for custom component -->
+<script type="text/ng-template" id="app/dwd/index.html">
+    <div class="container">
+        <div class="dwd-header">
+            <div>
+                <a class="btnstylerev" back-button>{{ ::'Back' | translate }}</a>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-default"
+                        ng-show="$ctrl.pluginApiDevices.length > 1"
+                        ng-repeat="device in $ctrl.pluginApiDevices"
+                        ng-class="{'active': device.idx === $ctrl.selectedApiDeviceIdx}"
+                        ng-click="$ctrl.selectPlugin(device.idx)">
+                    {{::device.HardwareName}}
+                </button>
+            </div>
+
+            <div class="align-right" ng-if="$ctrl.controllerInfo">
+                <label>
+                   {{$ctrl.controllerInfo.HardwareID}}
+                   {{$ctrl.controllerInfo.HardwareName}}
+                   {{$ctrl.controllerInfo.HardwareType}}
+                   {{$ctrl.controllerInfo.HardwareDisabled}}
+                </label>
+            </div>
+
+
+        </div>
+        <h2 class="page-header">DWD Weather Alarm Plugin UI</h2>
+        <p>{{ $ctrl.message }}</p>
+
+
+        <br/>
+
+            <div >
+                <page-loading-indicator ng-hide="$ctrl.dwdDevices"></page-loading-indicator>
+                <table  class="display dataTable no-footer" width="100%" role="grid" aria-describedby="devices_info"
+    style="width: 100%;" ng-show="$ctrl.dwdDevices">
+                    <tr ng-repeat="d in $ctrl.dwdDevices">
+                    <td>{{ d.Name }}</td>
+                    <td>{{ d.Unit }}</td>
+                    </tr>
+                </table>
+            </div>
+
+
+    </div>
+
+    <h3>Grid view</h3>
+
+
+
+
+</script>
+
+
+<script type="text/ng-template" id="app/dwd/devices.html">
+    <div class="btn-panel align-right">
+        <button class="btn btn-default" ng-click="$ctrl.onUpdate()">{{:: 'Refresh' | translate }}</button>
+    </div>
+
+    <table classs="display" width="100%">
+                    <tr ng-repeat="d in $ctrl.dwdDevices">
+                    <td>{{ d.Name }}</td>
+                    <td>{{ d.Unit }}</td>
+                    </tr>
+                </table>
+    <section ng-if="$ctrl.dwdDevices.length > 0">
+        <h2 class="page-header">{{:: 'Devices' | translate }}</h2>
+        <dwd-devices-table devices="$ctrl.associatedDevices" on-update="$ctrl.onUpdateDomoticzDevice()"/>
+    </section>
+</script>
+
+
+<script>
+        require(['../templates/testDwd3'], function() {
+        angular.element(document).injector().invoke(function($compile) {
+            var $div = angular.element('<dwd-plugin />');
+            angular.element('#plugin-view').append($div);
+
+            var scope = angular.element($div).scope();
+            $compile($div)(scope);
+        });
+
+    });
+</script>

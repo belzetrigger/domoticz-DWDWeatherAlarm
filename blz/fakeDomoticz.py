@@ -10,7 +10,7 @@
 #   Very simple module to make local testing easier
 #   It "emulates" Domoticz.Log() and Domoticz.Debug()
 #
-#from _typeshed import FileDescriptor
+# from _typeshed import FileDescriptor
 from typing import Any, Dict
 
 Parameters: Dict[str, Any] = {
@@ -19,7 +19,9 @@ Parameters: Dict[str, Any] = {
     "Mode3": None,
     "Mode4": None,
     "Mode5": None,
-    "Mode6": "Debug"
+    "Mode6": "Debug",
+    "HomeFolder": "./",
+    "StartupFolder": "wwwtest/"
 }
 Images: Dict[str, Any] = {}
 Devices: Dict[int, Any] = {}

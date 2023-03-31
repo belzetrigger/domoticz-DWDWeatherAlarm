@@ -23,6 +23,15 @@ CONFIG_SECTION_KREIS_OBERALLGAEU = "dwd_Kreis_Oberallgaeu"
 CONFIG_SECTION_KREIS_OBERHAVEL = "dwd_Kreis_Oberhavel"
 
 CONFIG_SECTION_STADT_GREIZ = "dwd_Stadt_Greiz"
+
+CONFIG_SECTION_STADT_HAMBURG = "dwd_Stadt_Hamburg"
+CONFIG_SECTION_STADT_BERLIN = "dwd_Stadt_Berlin"
+
+CONFIG_SECTION_STADT_FRANKFURT = "dwd_Stadt_Frankfurt"
+CONFIG_SECTION_STADT_FRANKFURT2 = "dwd_Stadt_Frankfurt2"
+CONFIG_SECTION_STADT_FRANKFURT_NORD = "dwd_Stadt_FrankfurtNord"
+CONFIG_SECTION_STADT_FRANKFURT_SUED = "dwd_Stadt_FrankfurtSued"
+
 CONFIG_SECTION_BUGGY = "dwd_buggy"
 
 # set up logger
@@ -107,6 +116,12 @@ class Test_dwd(unittest.TestCase):
         c2 = DwdDetailLevel.getByName("event")
         self.assertEquals(c, c2)
 
+        n = DwdDetailLevel.getByName("")
+        self.assertIsNone(n)
+
+        n = DwdDetailLevel.getByName(" ")
+        self.assertIsNone(n)
+
     def test_EnumColor(self):
         c = DwdAlertColor.DARK_RED
         self.assertIsNotNone(c)
@@ -188,6 +203,81 @@ class Test_dwd(unittest.TestCase):
         self.dwd.dumpStatus()
         self.assertTrue(self.dwd.needsUpdate(), "fresh init so we need an update")
 
+    def test_Stadt_Hamburg(self):
+        """
+        takes warncell for Stadt Greiz
+        """
+
+        config = configparser.ConfigParser()
+        config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
+        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_STADT_HAMBURG)
+        self.doWork(self.dwd)
+        self.dwd.readContent()
+        self.dwd.dumpStatus()
+        self.assertTrue(self.dwd.needsUpdate(), "fresh init so we need an update")
+
+    def test_Stadt_Berlin(self):
+        """
+        takes warncell for Stadt Greiz
+        """
+
+        config = configparser.ConfigParser()
+        config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
+        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_STADT_BERLIN)
+        self.doWork(self.dwd)
+        self.dwd.readContent()
+        self.dwd.dumpStatus()
+        self.assertTrue(self.dwd.needsUpdate(), "fresh init so we need an update")
+
+    def test_Stadt_Frankfurt(self):
+        """
+        takes warncell for Stadt Greiz
+        """
+
+        config = configparser.ConfigParser()
+        config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
+        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_STADT_FRANKFURT)
+        self.doWork(self.dwd)
+        self.dwd.readContent()
+        self.dwd.dumpStatus()
+        self.assertTrue(self.dwd.needsUpdate(), "fresh init so we need an update")
+
+    def test_Stadt_Frankfurt2(self):
+        """
+        takes warncell for Stadt Greiz
+        """
+        config = configparser.ConfigParser()
+        config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
+        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_STADT_FRANKFURT2)
+        self.doWork(self.dwd)
+        self.dwd.readContent()
+        self.dwd.dumpStatus()
+        self.assertTrue(self.dwd.needsUpdate(), "fresh init so we need an update")
+
+    def test_Stadt_FrankfurtNord(self):
+        """
+        takes warncell for Stadt Greiz
+        """
+        config = configparser.ConfigParser()
+        config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
+        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_STADT_FRANKFURT_NORD)
+        self.doWork(self.dwd)
+        self.dwd.readContent()
+        self.dwd.dumpStatus()
+        self.assertTrue(self.dwd.needsUpdate(), "fresh init so we need an update")
+
+    def test_Stadt_FrankfurtSued(self):
+        """
+        takes warncell for Stadt Greiz
+        """
+        config = configparser.ConfigParser()
+        config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
+        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_STADT_FRANKFURT_SUED)
+        self.doWork(self.dwd)
+        self.dwd.readContent()
+        self.dwd.dumpStatus()
+        self.assertTrue(self.dwd.needsUpdate(), "fresh init so we need an update")
+
     def test_Buggy_Entry(self):
         """
         takes buggy warncell  from common config and tests it
@@ -195,7 +285,7 @@ class Test_dwd(unittest.TestCase):
         config = configparser.ConfigParser()
         config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
         self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_BUGGY)
-        self.doWork(self.dwd)
+        self.doWork(self.dwd, mustExist=False)
         self.assertTrue(self.dwd.hasErrorX())
         self.assertIsNotNone(self.dwd.getErrorMsg())
 
@@ -218,7 +308,7 @@ class Test_dwd(unittest.TestCase):
         aDwd = Dwd(dwdWarnCellId=cellId, regionType=rT)
         return aDwd
 
-    def doWork(self, aDwd: Dwd):
+    def doWork(self, aDwd: Dwd, mustExist: bool = True):
         """quickly checks and read content from internet
 
         Args:
@@ -227,12 +317,12 @@ class Test_dwd(unittest.TestCase):
 
         self.assertIsNotNone(aDwd, "We do not an object of bsr, otherwise no tests are possible")
         aDwd.dumpConfig()
-        aDwd.doesWarnCellExist()
+        self.assertEquals(aDwd.doesWarnCellExist(), mustExist)
         aDwd.dumpStatus()
-        aDwd.readContent()
+        self.assertEquals(aDwd.readContent(), mustExist)
         aDwd.dumpStatus()
         self.assertTrue(self.dwd.needsUpdate(), "fresh init so we need an update")
-        aDwd.readContent()
+        self.assertEquals(aDwd.readContent(), mustExist)
         # self.assertFalse(self.dwd.needsUpdate(), "quick re-read should not force a need for update")
         self.assertTrue(self.dwd.needsUpdate(), "no optimization done - so always update")
         t = aDwd.getAlarmText()

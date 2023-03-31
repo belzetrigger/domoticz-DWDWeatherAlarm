@@ -1,0 +1,43 @@
+<!-- Placeholder for page content -->
+<div id="plugin-view"></div>
+
+<!-- Template for custom component -->
+<script type="text/ng-template" id="app/dwdWeatherAlarm/index.html">
+    <div class="container">
+        <a class="btnstylerev" back-button>{{ ::'Back' | translate }}</a>
+        <h2 class="page-header">My Plugin UI</h2>
+        <p>{{ $ctrl.message }}</p>
+
+        <div class="btn-group">
+                <button class="btn btn-default"
+                        ng-show="$ctrl.pluginApiDevices.length > 1"
+                        ng-repeat="device in $ctrl.pluginApiDevices"
+                        ng-class="{'active': device.idx === $ctrl.selectedApiDeviceIdx}"
+                        ng-click="$ctrl.selectPlugin(device.idx)">
+                    {{::device.HardwareName}}
+                </button>
+        </div>
+    </div>
+</script>
+
+<script>
+    require(['app'], function(app) {
+        // Custom component definition
+        app.component('dwdWeatherAlarmPlugin', {
+            templateUrl: 'app/dwdWeatherAlarm/index.html',
+            controller: function($scope, domoticzApi) {
+                var $ctrl = this;
+                $ctrl.message = 'This is dwd plugin'
+            }
+        });
+
+        // This piece triggers Angular to re-render page with custom components support
+        angular.element(document).injector().invoke(function($compile) {
+            var $div = angular.element('<dwdWeatherAlarm-plugin/>');
+            angular.element('#plugin-view').append($div);
+
+            var scope = angular.element($div).scope();
+            $compile($div)(scope);
+        });
+    });
+</script>

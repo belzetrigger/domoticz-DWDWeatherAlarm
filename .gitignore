@@ -132,3 +132,6 @@ check_device_online.py
 my_config.ini
 
 icons/*
+
+wwwtest
+/frontend

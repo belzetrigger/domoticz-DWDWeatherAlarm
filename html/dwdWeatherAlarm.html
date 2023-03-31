@@ -1,0 +1,47 @@
+<div id="plugin-view"></div>
+
+<link rel="stylesheet" href="/templates/dwdWeatherAlarm/leaflet.css">
+
+<style>
+    .leaflet-container {
+        background-color: white;
+    }
+
+    .dwdWeatherAlarm-header {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .dwdWeatherAlarm-header > .btn-group {
+        text-align: center;
+    }
+</style>
+
+<script type="text/ng-template" id="app/dwdweatheralarmplugin/index.html">
+    <div class="container">
+        <div class="dwdWeatherAlarm-header">
+            <div>
+                <a class="btnstylerev" back-button>{{ ::'Back' | translate }}</a>
+            </div>
+
+
+        </div>
+
+        <h2 class="page-header">dwdWeatherAlarm</h2>
+
+
+    </div>
+
+</script>
+
+<script>
+    require(['../templates/dwdWeatherAlarm'], function() {
+        angular.element(document).injector().invoke(function($compile) {
+            var $div = angular.element('<dwd-weather-alarm-plugin-root></dwd-weather-alarm-plugin-root>');
+            angular.element('#plugin-view').append($div);
+
+            var scope = angular.element($div).scope();
+            $compile($div)(scope);
+        });
+    });
+</script>
