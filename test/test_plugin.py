@@ -20,9 +20,12 @@ CONFIG_SECTION_KREIS_OBERHAVEL = "dwd_Kreis_Oberhavel"
 CONFIG_SECTION_STADT_GREIZ = "dwd_Stadt_Greiz"
 CONFIG_SECTION_BUGGY = "dwd_buggy"
 
-# set up logger
-logger = logging.getLogger()
-logger.level = logging.DEBUG
+# set up log
+# init ROOT logger from my_logger.logger_init()
+from test.logger import logger_init
+from test.logger import logger_cleanUp
+logger_init()  # init root logger
+logger = logging.getLogger(__name__)  # module logger
 
 
 class Test_plugin(unittest.TestCase):

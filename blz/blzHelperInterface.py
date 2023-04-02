@@ -119,7 +119,8 @@ class Interface(type):
 
     def _get_abstract_methods(namespace):
         return [
-            name for name, val in namespace.items()
+            name
+            for name, val in namespace.items()
             if callable(val) and getattr(val, "__isabstract__", False)
         ]
 
@@ -135,7 +136,7 @@ class BlzHelperInterface(metaclass=Interface):
         metaclass ([type], optional): [description]. Defaults to Interface.
     """
     @abstractfunc
-    def needsUpdate(self) -> bool:
+    def needsUpdateX(self):
         """does some of the devices need an update
 
         Returns:
