@@ -46,8 +46,6 @@ logger = logging.getLogger(__name__)  # module logger
 class Test_dwd(unittest.TestCase):
     def setUp(self):
         # work around logger
-        self.stream_handler = logging.StreamHandler(sys.stdout)
-        logger.addHandler(self.stream_handler)
         logger.info("# set up test for dwd")
 
     def tearDown(self):
@@ -57,7 +55,7 @@ class Test_dwd(unittest.TestCase):
         #    self.dwd = None
 
         # remove logger
-        logger.removeHandler(self.stream_handler)
+        logger_cleanUp()
 
     def test_Enums(self):
         m = Severity.__members__
@@ -150,12 +148,12 @@ class Test_dwd(unittest.TestCase):
         """
         takes address from **my** config and tests it
         """
-        conf = "./test/my_config.ini"
+        conf = r"./test/my_config.ini"
         if not os.path.isfile(conf):
             self.skipTest("mising personal configuration")
 
         config = configparser.ConfigParser()
-        config.read_file(codecs.open(r"./test/my_config.ini", encoding="utf-8"))
+        config.read_file(codecs.open(conf, encoding="utf-8"))
 
 
 

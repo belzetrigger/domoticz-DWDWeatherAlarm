@@ -1,6 +1,7 @@
 from blz.fakeDomoticz import Parameters
 import unittest
 import sys
+import os.path
 import logging
 import codecs
 
@@ -31,43 +32,49 @@ logger = logging.getLogger(__name__)  # module logger
 class Test_plugin(unittest.TestCase):
     def setUp(self):
         # work around logger
-        self.stream_handler = logging.StreamHandler(sys.stdout)
-        logger.addHandler(self.stream_handler)
-        logging.getLogger().info("# set up test for dwd")
+        logger.info("# set up test for dwd")
         self.plugin = BasePlugin() #plugin()
 
         config = configparser.ConfigParser()
-        config.read_file(codecs.open(r"./test/my_config.ini", encoding="utf-8"))
-        self.dwd = self.readAndCreate(config, CONFIG_SECTION_MY)
-
+        conf = r"./test/my_config.ini"
+        logger.info("search personal conf")
+        if os.path.isfile(conf):
+            logger.info("found personal conf")
+            config.read_file(codecs.open(conf, encoding="utf-8"))
+            self.dwd = self.readAndCreate(config, CONFIG_SECTION_MY)
+        else:
+            logger.warn("did not found my_config using common.")
+            conf = r"./test/common_config.ini"
+            config.read_file(codecs.open(conf, encoding="utf-8"))
+            self.dwd = self.readAndCreate(config, CONFIG_SECTION_GEMEINDE_OBERSTDORF)
         self.plugin.dwd = self.dwd
 
     def tearDown(self):
-        logging.getLogger().info("# tear down: test for dwd")
+        logger.info("# tear down: test for dwd")
         if self.plugin:
             self.plugin = None
 
         # remove logger
-        logger.removeHandler(self.stream_handler)
+        logger_cleanUp()
 
     def test_A_onStart(self):
-        logging.getLogger().info("#fake start of plugin")
+        logger.info("#fake start of plugin")
         #TODO call:
         self.plugin.onStart()
 
     def test_A_onStart_Missing_Conf(self):
-        logging.getLogger().error("please insert test")
+        logger.error("please insert test")
         #TODO call:
         #self.plugin.onStart()
 
     def test_B_onHeartbeat(self):
-        logging.getLogger().info("#fake heart beat")
+        logger.info("#fake heart beat")
         #TODO call:
         self.plugin.onStart()
         self.plugin.onHeartbeat()
 
     def test_C_onStop(self):
-        logging.getLogger().info("#fake stop")
+        logger.info("#fake stop")
         #TODO call:
         self.plugin.onStop()
 
