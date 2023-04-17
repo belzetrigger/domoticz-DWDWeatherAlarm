@@ -67,16 +67,16 @@ class Test_dwd(unittest.TestCase):
         self.assertIsNotNone(srv)
 
         maxS = Severity.max(minor, srv)
-        self.assertEquals(maxS, srv)
+        self.assertEqual(maxS, srv)
 
         maxS = Severity.max(srv, minor)
-        self.assertEquals(maxS, srv)
+        self.assertEqual(maxS, srv)
 
         maxS = Severity.max(srv, None)
-        self.assertEquals(maxS, srv)
+        self.assertEqual(maxS, srv)
 
         maxS = Severity.max(None, srv)
-        self.assertEquals(maxS, srv)
+        self.assertEqual(maxS, srv)
 
         m = RegionTypeCommon.__members__
         self.assertIsNotNone(m)
@@ -94,7 +94,7 @@ class Test_dwd(unittest.TestCase):
         self.assertIsNotNone(rt)
         rt2 = RegionType.getByName("Kreis")
         self.assertIsNotNone(rt2)
-        self.assertEquals(rt, rt2)
+        self.assertEqual(rt, rt2)
 
         cl = DwdAlertColor.getBySeverity(random.choice(list(Severity)))
         self.assertIsNotNone(cl)
@@ -116,7 +116,7 @@ class Test_dwd(unittest.TestCase):
             "details:{}\tdetails:{}\ticon:{} ".format(c.name, c.showDetails, c.showIcon)
         )
         c2 = DwdDetailLevel.getByName("event")
-        self.assertEquals(c, c2)
+        self.assertEqual(c, c2)
 
         n = DwdDetailLevel.getByName("")
         self.assertIsNone(n)
@@ -134,15 +134,15 @@ class Test_dwd(unittest.TestCase):
         sH = c.getColorAsHexString()
         self.assertIsNotNone(sH)
         logger.info("color:{}\t colorHex is:{}".format(c.name, sH))
-        self.assertEquals("#880e4f", sH)
+        self.assertEqual("#880e4f", sH)
 
         sR = c.getColorAsRGBString()
         logger.info("color:{}\t colorRGB is:{}".format(c.name, sR))
-        self.assertEquals("rgb(136, 14, 79)", sR)
+        self.assertEqual("rgb(136, 14, 79)", sR)
 
         c2 = DwdAlertColor.getBySeverity(Severity.Extreme)
         self.assertIsNotNone(c2)
-        self.assertEquals(c, c2)
+        self.assertEqual(c, c2)
 
     def test_myDwd(self):
         """
@@ -326,12 +326,12 @@ class Test_dwd(unittest.TestCase):
 
         self.assertIsNotNone(aDwd, "We do not an object of bsr, otherwise no tests are possible")
         aDwd.dumpConfig()
-        self.assertEquals(aDwd.doesWarnCellExist(), mustExist)
+        self.assertEqual(aDwd.doesWarnCellExist(), mustExist)
         aDwd.dumpStatus()
-        self.assertEquals(aDwd.readContent(), mustExist)
+        self.assertEqual(aDwd.readContent(), mustExist)
         aDwd.dumpStatus()
         self.assertTrue(self.dwd.needsUpdate(), "fresh init so we need an update")
-        self.assertEquals(aDwd.readContent(), mustExist)
+        self.assertEqual(aDwd.readContent(), mustExist)
         # self.assertFalse(self.dwd.needsUpdate(), "quick re-read should not force a need for update")
         self.assertTrue(self.dwd.needsUpdate(), "no optimization done - so always update")
         t = aDwd.getAlarmText()
