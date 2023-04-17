@@ -1,6 +1,7 @@
 import random
 import unittest
 import sys
+import os.path
 import logging
 import codecs
 from dwd.dwd import (
@@ -149,8 +150,14 @@ class Test_dwd(unittest.TestCase):
         """
         takes address from **my** config and tests it
         """
+        conf = "./test/my_config.iniX"
+        if not os.path.isfile(conf):
+            self.skipTest("mising personal configuration")
+
         config = configparser.ConfigParser()
         config.read_file(codecs.open(r"./test/my_config.ini", encoding="utf-8"))
+
+
 
         self.dwd = self.readAndCreate(config, CONFIG_SECTION_MY)
         self.doWork(self.dwd)
