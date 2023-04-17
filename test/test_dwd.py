@@ -150,7 +150,7 @@ class Test_dwd(unittest.TestCase):
         """
         takes address from **my** config and tests it
         """
-        conf = "./test/my_config.iniX"
+        conf = "./test/my_config.ini"
         if not os.path.isfile(conf):
             self.skipTest("mising personal configuration")
 
