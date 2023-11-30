@@ -50,10 +50,14 @@ class DwdDetailLevel(Enum):
         self.showIcon = icon
 
     @classmethod
+    def getDefault(cls):
+        return cls.EVENT_DETAILS
+
+    @classmethod
     def getByName(cls, aName: str):
         # cls here is the enumeration
         if isBlank(aName):
-            return cls.EVENT_DETAILS
+            return cls.getDefault()
         return cls[(aName.upper())]  # type: ignore
 
 

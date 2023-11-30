@@ -121,11 +121,12 @@ class Test_dwd(unittest.TestCase):
         c2 = DwdDetailLevel.getByName("event")
         self.assertEqual(c, c2)
 
+        # changed, now we do not return NONE we return default
         n = DwdDetailLevel.getByName("")
-        self.assertIsNone(n)
+        self.assertEqual(n, DwdDetailLevel.getDefault())
 
         n = DwdDetailLevel.getByName(" ")
-        self.assertIsNone(n)
+        self.assertEqual(n, DwdDetailLevel.getDefault())
 
     def test_EnumColor(self):
         c = DwdAlertColor.DARK_RED
