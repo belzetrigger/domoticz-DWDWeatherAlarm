@@ -168,8 +168,8 @@ class DwdIcons(Enum):
     SNOWDRIFT = "warn_icons_schnee.png", [74, 75, 76, 77, 78]
     FOG = "warn_icons_nebel.png", [59]
     FROST = "warn_icons_frost.png", [22, 81, 82, 83]
-    GLAZE = "warn_icons_glatteis.png", [24, 83, 84, 85, 86, 87]
     SLIPPERINESS = "warn_icons_glatteis.png", [24, 83, 84, 85, 86, 87]
+    GLAZE = "warn_icons_glatteis.png", [24, 83, 84, 85, 86, 87]
     THAW = "warn_icons_tauwetter.png", [88, 89]
 
     POWERLINEVIBRATION = "warn_icons_uv.png", [79]

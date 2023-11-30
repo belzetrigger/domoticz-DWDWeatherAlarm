@@ -94,7 +94,6 @@ Just add your warncell / region. Check out that devices are created. Locations n
 If nothing pops up, check Domoticz Logs. And try to change Id or RegionType.
 
 ## Bugs and ToDos
-
 - [x] bug with new data from DWD if containing 'SLIPPERINESS'
 - [x] use name coming from WFS for devices
 - [x] use icons to symbolize the event
