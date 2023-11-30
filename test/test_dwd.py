@@ -1,20 +1,22 @@
-import random
-import unittest
-import sys
-import os.path
-import logging
 import codecs
+import configparser
+import logging
+import os.path
+import random
+import sys
+import unittest
+from test.logger import logger_cleanUp, logger_init
+
 from dwd.dwd import (
     Dwd,
     DwdAlertColor,
     DwdDetailLevel,
     DwdIcons,
-    Severity,
     RegionType,
     RegionTypeCommon,
     RegionTypeWarning,
+    Severity,
 )
-import configparser
 
 sys.path.insert(0, "..")
 CONFIG_SECTION_MY = "dwd_my"
@@ -35,10 +37,11 @@ CONFIG_SECTION_STADT_FRANKFURT_SUED = "dwd_Stadt_FrankfurtSued"
 
 CONFIG_SECTION_BUGGY = "dwd_buggy"
 
+DEFAULT_DETAIL_LEVEL = "event"  # if noting is defined in config we use this level
+
 # set up log
 # init ROOT logger from my_logger.logger_init()
-from test.logger import logger_init
-from test.logger import logger_cleanUp
+
 logger_init()  # init root logger
 logger = logging.getLogger(__name__)  # module logger
 
@@ -140,7 +143,7 @@ class Test_dwd(unittest.TestCase):
         logger.info("color:{}\t colorRGB is:{}".format(c.name, sR))
         self.assertEqual("rgb(136, 14, 79)", sR)
 
-        c2 = DwdAlertColor.getBySeverity(Severity.Extreme)
+        c2 = DwdAlertColor.getBySeverity(Severity.EXTREME)
         self.assertIsNotNone(c2)
         self.assertEqual(c, c2)
 
@@ -150,36 +153,39 @@ class Test_dwd(unittest.TestCase):
         """
         conf = r"./test/my_config.ini"
         if not os.path.isfile(conf):
-            self.skipTest("mising personal configuration")
+            self.skipTest("missing personal configuration")
 
         config = configparser.ConfigParser()
         config.read_file(codecs.open(conf, encoding="utf-8"))
-
-
 
         self.dwd = self.readAndCreate(config, CONFIG_SECTION_MY)
         self.doWork(self.dwd)
         self.assertIsNotNone(self.dwd.getAlarmLevel)
         self.assertIsNotNone(self.dwd.getAlarmText)
+        logger.info(self.dwd.getText(self.dwd.immediateWarnings, seperator=" :: "))
 
     def test_Gemeinde_Oberstdorf(self):
         """
-        takes standrad warncell from common config and tests it
+        takes standard warncell from common config and tests it
         """
 
         config = configparser.ConfigParser()
         config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
-        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_GEMEINDE_OBERSTDORF)
+        self.dwd = self.readAndCreate(
+            aConfig=config, aSection=CONFIG_SECTION_GEMEINDE_OBERSTDORF
+        )
         self.doWork(self.dwd)
 
     def test_Kreis_Oberallgaeu(self):
         """
-        takes standrad warncell from common config and tests it
+        takes standard warncell from common config and tests it
         """
 
         config = configparser.ConfigParser()
         config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
-        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_KREIS_OBERALLGAEU)
+        self.dwd = self.readAndCreate(
+            aConfig=config, aSection=CONFIG_SECTION_KREIS_OBERALLGAEU
+        )
         self.doWork(self.dwd)
         self.dwd.readContent()
         self.dwd.dumpStatus()
@@ -187,12 +193,14 @@ class Test_dwd(unittest.TestCase):
 
     def test_Kreis_Oberhavel(self):
         """
-        takes standrad warncell from common config and tests it
+        takes standard warncell from common config and tests it
         """
 
         config = configparser.ConfigParser()
         config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
-        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_KREIS_OBERHAVEL)
+        self.dwd = self.readAndCreate(
+            aConfig=config, aSection=CONFIG_SECTION_KREIS_OBERHAVEL
+        )
         self.doWork(self.dwd)
         self.dwd.readContent()
         self.dwd.dumpStatus()
@@ -205,7 +213,9 @@ class Test_dwd(unittest.TestCase):
 
         config = configparser.ConfigParser()
         config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
-        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_STADT_GREIZ)
+        self.dwd = self.readAndCreate(
+            aConfig=config, aSection=CONFIG_SECTION_STADT_GREIZ
+        )
         self.doWork(self.dwd)
         self.dwd.readContent()
         self.dwd.dumpStatus()
@@ -218,7 +228,9 @@ class Test_dwd(unittest.TestCase):
 
         config = configparser.ConfigParser()
         config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
-        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_STADT_HAMBURG)
+        self.dwd = self.readAndCreate(
+            aConfig=config, aSection=CONFIG_SECTION_STADT_HAMBURG
+        )
         self.doWork(self.dwd)
         self.dwd.readContent()
         self.dwd.dumpStatus()
@@ -231,7 +243,9 @@ class Test_dwd(unittest.TestCase):
 
         config = configparser.ConfigParser()
         config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
-        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_STADT_BERLIN)
+        self.dwd = self.readAndCreate(
+            aConfig=config, aSection=CONFIG_SECTION_STADT_BERLIN
+        )
         self.doWork(self.dwd)
         self.dwd.readContent()
         self.dwd.dumpStatus()
@@ -244,14 +258,16 @@ class Test_dwd(unittest.TestCase):
 
         config = configparser.ConfigParser()
         config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
-        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_STADT_FRANKFURT)
+        self.dwd = self.readAndCreate(
+            aConfig=config, aSection=CONFIG_SECTION_STADT_FRANKFURT
+        )
         self.doWork(self.dwd)
         self.dwd.readContent()
         self.dwd.dumpStatus()
         self.assertTrue(self.dwd.needsUpdate(), "fresh init so we need an update")
 
     # Frankfurt2 is buggy ... do not
-    #def test_Stadt_Frankfurt2(self):
+    # def test_Stadt_Frankfurt2(self):
     #    """
     #    takes warncell for Stadt Greiz
     #    """
@@ -269,7 +285,9 @@ class Test_dwd(unittest.TestCase):
         """
         config = configparser.ConfigParser()
         config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
-        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_STADT_FRANKFURT_NORD)
+        self.dwd = self.readAndCreate(
+            aConfig=config, aSection=CONFIG_SECTION_STADT_FRANKFURT_NORD
+        )
         self.doWork(self.dwd)
         self.dwd.readContent()
         self.dwd.dumpStatus()
@@ -281,7 +299,9 @@ class Test_dwd(unittest.TestCase):
         """
         config = configparser.ConfigParser()
         config.read_file(codecs.open(r"./test/common_config.ini", encoding="utf-8"))
-        self.dwd = self.readAndCreate(aConfig=config, aSection=CONFIG_SECTION_STADT_FRANKFURT_SUED)
+        self.dwd = self.readAndCreate(
+            aConfig=config, aSection=CONFIG_SECTION_STADT_FRANKFURT_SUED
+        )
         self.doWork(self.dwd)
         self.dwd.readContent()
         self.dwd.dumpStatus()
@@ -298,7 +318,7 @@ class Test_dwd(unittest.TestCase):
         self.assertTrue(self.dwd.hasErrorX())
         self.assertIsNotNone(self.dwd.getErrorMsg())
 
-    def readAndCreate(self, aConfig, aSection):
+    def readAndCreate(self, aConfig: configparser.ConfigParser, aSection):
         """creates a dwd object based on config
 
         Args:
@@ -313,8 +333,14 @@ class Test_dwd(unittest.TestCase):
         )
         cellId = aConfig.get(aSection, "cellId")
         region = aConfig.get(aSection, "region")
+
+        detail = DEFAULT_DETAIL_LEVEL
+        if aConfig.has_option(aSection, "detail"):
+            detail = aConfig.get(aSection, "detail")
+
+        dL: DwdDetailLevel = DwdDetailLevel.getByName(detail)
         rT: RegionType = RegionType.getByName(region)
-        aDwd = Dwd(dwdWarnCellId=cellId, regionType=rT)
+        aDwd = Dwd(dwdWarnCellId=cellId, regionType=rT, detailLevel=dL)
         return aDwd
 
     def doWork(self, aDwd: Dwd, mustExist: bool = True):
@@ -324,7 +350,9 @@ class Test_dwd(unittest.TestCase):
             aDwd (Dwd): the object to test
         """
 
-        self.assertIsNotNone(aDwd, "We do not an object of bsr, otherwise no tests are possible")
+        self.assertIsNotNone(
+            aDwd, "We do not an object of bsr, otherwise no tests are possible"
+        )
         aDwd.dumpConfig()
         self.assertEqual(aDwd.doesWarnCellExist(), mustExist)
         aDwd.dumpStatus()
@@ -333,7 +361,9 @@ class Test_dwd(unittest.TestCase):
         self.assertTrue(self.dwd.needsUpdate(), "fresh init so we need an update")
         self.assertEqual(aDwd.readContent(), mustExist)
         # self.assertFalse(self.dwd.needsUpdate(), "quick re-read should not force a need for update")
-        self.assertTrue(self.dwd.needsUpdate(), "no optimization done - so always update")
+        self.assertTrue(
+            self.dwd.needsUpdate(), "no optimization done - so always update"
+        )
         t = aDwd.getAlarmText()
         self.assertIsNotNone(t)
         i = aDwd.getAlarmLevel()

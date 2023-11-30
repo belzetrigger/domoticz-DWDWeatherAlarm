@@ -1,21 +1,20 @@
-from typing import List
 import random
+from datetime import datetime
+from typing import List
 
-from datetime import datetime, time
-from unittest.runner import TextTestRunner # timedelta
 import requests
 from requests.models import Response
 
 # import os
 
 try:
-    import Domoticz          # type: ignore # python.analysis.warnings:
+    import Domoticz  # type: ignore # python.analysis.warnings:
 except ImportError:
     from blz import fakeDomoticz as Domoticz
 
-from blz.blzHelperInterface import BlzHelperInterface, hex_to_rgb, isBlank, parseIsoDate
-
 from enum import Enum, unique
+
+from blz.blzHelperInterface import hex_to_rgb, isBlank, parseIsoDate
 
 # import rpdb
 # rpdb.set_trace()
@@ -24,7 +23,8 @@ from enum import Enum, unique
 # https://maps.dwd.de/geoserver/dwd/ows?service=WFS&version=2.0.0&request=GetFeature&typeName={region_type}&CQL_FILTER={cql_filter_property}=%27{warncellid}%27&OutputFormat=application/json
 
 SERVER_PROD = "https://maps.dwd.de/geoserver/dwd/ows?"
-SERVER_FALLBACK = "https://brz-maps.dwd.de/geoserver/wfs?"
+# fall back not stable
+# SERVER_FALLBACK = "https://brz-maps.dwd.de/geoserver/wfs?"
 URL_CHECK = "{SERVER}service=WFS&version=2.0.0&request=GetFeature&typeName={REGION_TYPE_COMMON}&CQL_FILTER=WARNCELLID=%27{WARNCELL_ID}%27&OutputFormat=application/json"
 URL_WARNING = "{SERVER}service=WFS&version=2.0.0&request=GetFeature&typeName={REGION_TYPE_WARN}&CQL_FILTER={FILTER_PROP}=%27{WARNCELL_ID}%27&OutputFormat=application/json"
 # %27711000003%27
@@ -38,7 +38,10 @@ MAX_SHOWN_DETAIL_LENGTH = 120
 @unique
 class DwdDetailLevel(Enum):
     EVENT = False, False
-    EVENT_DETAILS = True, False,
+    EVENT_DETAILS = (
+        True,
+        False,
+    )
     EVENT_ICON = False, True
     EVENT_ICON_DETAILS = True, True
 
@@ -50,8 +53,8 @@ class DwdDetailLevel(Enum):
     def getByName(cls, aName: str):
         # cls here is the enumeration
         if isBlank(aName):
-            return None
-        return cls.__getattr__(aName.upper()) # type: ignore
+            return cls.EVENT_DETAILS
+        return cls[(aName.upper())]  # type: ignore
 
 
 class DwdIcons(Enum):
@@ -60,7 +63,8 @@ class DwdIcons(Enum):
     # NEBEL = "warn_icons_nebel.png",[59]
     # REGEN = "warn_icons_regen.png",[61,62,63,64,65,66]
     # SCHNEE = "warn_icons_schnee.png",[70,71,72,73,74,75,76,77,78]
-    # GEWITTER = "warn_icons_gewitter.png", [31,33,34,36,38,40,41,42,44,45,46,48,49,95,96]
+    # GEWITTER = "warn_icons_gewitter.png", [31,33,34,36,38,40,41,42,44,45,
+    #       46,48,49,95,96]
     # TAUWETTER = "warn_icons_tauwetter.png",[88,89]
     # GLATTEIS = "warn_icons_glatteis.png",[24,83,84,85,86,87]
     # HITZE = "warn_icons_hitze.png",[0]
@@ -145,12 +149,27 @@ class DwdIcons(Enum):
         95,
         96,
     ]
-    HAIL = "warn_icons_regen.png", [33, 34, 38, 40, 41, 42, 44, 45, 46, 48, 49, 95, 96]
+    HAIL = "warn_icons_regen.png", [
+        33,
+        34,
+        38,
+        40,
+        41,
+        42,
+        44,
+        45,
+        46,
+        48,
+        49,
+        95,
+        96,
+    ]
     SNOWFALL = "warn_icons_schnee.png", [70, 71, 72, 73, 76, 77, 78]
     SNOWDRIFT = "warn_icons_schnee.png", [74, 75, 76, 77, 78]
     FOG = "warn_icons_nebel.png", [59]
     FROST = "warn_icons_frost.png", [22, 81, 82, 83]
     GLAZE = "warn_icons_glatteis.png", [24, 83, 84, 85, 86, 87]
+    SLIPPERINESS = "warn_icons_glatteis.png", [24, 83, 84, 85, 86, 87]
     THAW = "warn_icons_tauwetter.png", [88, 89]
 
     POWERLINEVIBRATION = "warn_icons_uv.png", [79]
@@ -177,7 +196,7 @@ class DwdIcons(Enum):
         # cls here is the enumeration
         if isBlank(aName):
             return None
-        return cls.__getattr__(aName) # type: ignore
+        return cls[aName.upper()]  # type: ignore
 
 
 @unique
@@ -187,16 +206,17 @@ class Severity(Enum):
 
     # dz Level = (0=gray, 1=green, 2=yellow, 3=orange, 4=red)
     NONE = (0, 0)
-    Minor = 1, 2             # Wetterwarnung (Gelb)
-    Moderate = 2, 3          # MarkanteWetterwarnung (Orange)
-    Severe = 3, 4            # Unwetterwarnung (Rot)
-    Extreme = 4, 4           # Extreme Unwetterwarnung (Violet)
+    MINOR = 1, 2  # Wetterwarnung (Gelb)
+    MODERATE = 2, 3  # MarkanteWetterwarnung (Orange)
+    SEVERE = 3, 4  # Unwetterwarnung (Rot)
+    EXTREME = 4, 4  # Extreme Unwetterwarnung (Violet)
 
     def __init__(self, internalValue: int, domoticzValue: int):
         """to create a member for this enum
 
         Args:
-            internalValue (int): internal used unique value to compare the severity
+            internalValue (int): internal used unique value to compare
+                                    the severity
             domoticzValue (int): value used within domoticz alarm/alert device
         """
         self._value_ = internalValue
@@ -212,7 +232,7 @@ class Severity(Enum):
     @classmethod
     def getByName(cls, aName: str):
         # cls here is the enumeration
-        return cls.__getattr__(aName) # type: ignore
+        return cls[aName.upper()]  # type: ignore
 
     @classmethod
     def max(cls, a: Enum, b: Enum):
@@ -228,21 +248,28 @@ class Severity(Enum):
 
 @unique
 class DwdAlertColor(Enum):
-    DARK_RED = Severity.Extreme, 0x880E4F          # Warnungen vor extremem Unwetter (Stufe 4)
-    RED = Severity.Severe, 0xE53935                # Unwetterwarnungen (Stufe 3)
-    ORANGE = Severity.Moderate, 0xFB8C00           # Warnungen vor markantem Wetter (Stufe 2)
-    YELLOW = Severity.Minor, 0xFFEB3B              # Wetterwarnungen (Stufe 1)
-    VIOLET_HEAT_EXTREM = Severity.Severe, 0x9E46F8 # Hitzewarnung (extrem)
-    VIOLET_HEAT = Severity.Minor, 0xC9F            # Hitzewarnung
-    VIOLET_UV = Severity.Minor, 0xFE68FE           # UV-Warnung
-    GREEN = Severity.NONE, 0xC5E566                # keine Warnung
+    # Warnungen vor extremem Unwetter (Stufe 4)
+    DARK_RED = Severity.EXTREME, 0x880E4F
+    # Unwetterwarnungen (Stufe 3)
+    RED = Severity.SEVERE, 0xE53935
+    # Warnungen vor markantem Wetter (Stufe 2)
+    ORANGE = Severity.MODERATE, 0xFB8C00
+    YELLOW = Severity.MINOR, 0xFFEB3B  # Wetterwarnungen (Stufe 1)
+    VIOLET_HEAT_EXTREM = Severity.SEVERE, 0x9E46F8  # Hitzewarnung (extrem)
+    VIOLET_HEAT = Severity.MINOR, 0xC9F  # Hitzewarnung
+    VIOLET_UV = Severity.MINOR, 0xFE68FE  # UV-Warnung
+    GREEN = Severity.NONE, 0xC5E566  # keine Warnung
     FUTURE = (
         Severity.NONE,
         None,
         "/stat/warnungen/warnapp/img/vorab.png",
-    )                                              # Vorabinformation Unwetter, lt. Doku erst ab Stufe 3 published
+    )
 
-    def __init__(self, severity: Severity, hex: int, alternativeImage: str = "") -> None:
+    # Vorabinformation Unwetter, lt. Doku erst ab Stufe 3 published
+
+    def __init__(
+        self, severity: Severity, hex: int, alternativeImage: str = ""
+    ) -> None:
         self.severity = severity
         self.hexColor = hex
         self.alternativeImage = alternativeImage
@@ -256,7 +283,7 @@ class DwdAlertColor(Enum):
     @classmethod
     def getByName(cls, aName: str):
         # cls here is the enumeration
-        return cls.__getattr__(aName) # type: ignore
+        return cls[aName.upper()]  # type: ignore
 
     @classmethod
     def getBySeverity(cls, severity: Severity):
@@ -299,14 +326,15 @@ class RegionType(Enum):
         common: RegionTypeCommon,
         filter: str = "WARNCELLID",
     ):
-        self.warning = warning # warning type
-        self.common = common   # common type
+        self.warning = warning  # warning type
+        self.common = common  # common type
         self.filterProp = filter
 
     @classmethod
     def getByName(cls, aName: str):
-        # cls here is the enumeration
-        return cls.__getattr__(aName.upper()) # type: ignore
+        return cls[aName.upper()]
+        # with py 3.12 buggy cls here is the enumeration
+        # return cls.__getattribute__(aName.upper())  # type: ignore
 
 
 class DwdData:
@@ -318,10 +346,10 @@ class DwdData:
         self.endTime: datetime = parseIsoDate(ftPropJson["EXPIRES"])
         self.event: str = ftPropJson["EVENT"]
         self.responsType: str = ftPropJson["RESPONSETYPE"]
-        self.eventGroup: str = ftPropJson["EC_GROUP"]           # THUNDERSTORM
-        self.eventColor: str = ftPropJson["EC_AREA_COLOR"]      # 255 235 59"
-        self.eventCode: str = ftPropJson["EC_II"]               # 31
-        self.category: str = ftPropJson["CATEGORY"]             # Met
+        self.eventGroup: str = ftPropJson["EC_GROUP"]  # THUNDERSTORM
+        self.eventColor: str = ftPropJson["EC_AREA_COLOR"]  # 255 235 59"
+        self.eventCode: str = ftPropJson["EC_II"]  # 31
+        self.category: str = ftPropJson["CATEGORY"]  # Met
         self.headline: str = ftPropJson["HEADLINE"]
         self.description: str = ftPropJson["DESCRIPTION"]
         self.instruction: str = ftPropJson["INSTRUCTION"]
@@ -329,9 +357,12 @@ class DwdData:
         self.serverity: str = ftPropJson["SEVERITY"]
         self.serverityType: Severity = Severity.getByName(self.serverity)
         self.level = 0
-        self.parameterName: str = ftPropJson["PARAMETERNAME"]   # "Gewitter,Gewitteraufzugsrichtung
-        self.parameterValue: str = ftPropJson["PARAMETERVALUE"] # isolated,south-east"
-        self.parameterValue: str = ftPropJson["AREADESC"]       # Kreis Oberhavel"
+        # "Gewitter,Gewitteraufzugsrichtung
+        self.parameterName: str = ftPropJson["PARAMETERNAME"]
+        # isolated,south-east"
+        self.parameterValue: str = ftPropJson["PARAMETERVALUE"]
+        # Kreis Oberhavel"
+        self.parameterValue: str = ftPropJson["AREADESC"]
 
         # TODO do we need short name for Bundesland? Only Landkreise do have it
         # self.gcState=ftPropJson["GC_STATE"] #BB
@@ -354,7 +385,8 @@ class DwdData:
         return s
 
 
-class Dwd:                                                  # (BlzHelperInterface):
+# (BlzHelperInterface):
+class Dwd:
     def __init__(
         self,
         dwdWarnCellId: str,
@@ -362,7 +394,7 @@ class Dwd:                                                  # (BlzHelperInterfac
         detailLevel: DwdDetailLevel = DwdDetailLevel.EVENT,
         debug: bool = False,
         test: bool = False,
-        timeout: int = 10
+        timeout: int = 10,
     ):
         Domoticz.Debug("create dwd for {}".format(dwdWarnCellId))
         self.warnCellId = dwdWarnCellId
@@ -492,32 +524,37 @@ class Dwd:                                                  # (BlzHelperInterfac
         url = URL_CHECK.format(
             SERVER=server,
             REGION_TYPE_COMMON=self.regionType.common.value,
-            WARNCELL_ID=self.warnCellId
+            WARNCELL_ID=self.warnCellId,
         )
+
         Domoticz.Debug("doesWarnCellExist url:{} ".format(url))
         response: Response = None
         try:
             response = requests.get(url, timeout=timeout)
         except requests.exceptions.ReadTimeout as e:
             Domoticz.Error(
-                "doesWarnCellExist: got timeout - could not verify warncell. {}".format(e)
+                "doesWarnCellExist: got timeout - could not verify warncell. {}".format(
+                    e
+                )
             )
             self.setError("Connection Issue: - could not verify settings.")
             # switch to fallback
-            if (self.useFallbackCheck is False):
-                self.useFallbackCheck = True
-                return self.doesWarnCellExist(SERVER_FALLBACK, 2 * self.timeout)
+            # if self.useFallbackCheck is False:
+            #     self.useFallbackCheck = True
+            #    return self.doesWarnCellExist(SERVER_FALLBACK, 2 * self.timeout)
 
             return success
         Domoticz.Debug("doesWarnCellExist -> yes url:{} ".format(url))
-        if (response and response.status_code == 200):
+        if response and response.status_code == 200:
             jResponse = response.json()
             features = jResponse["features"]
             totalFeatures = jResponse["totalFeatures"]
             # if( totalFeatures is not None and ((int) totalFeatures)  => 1):
             #    Domoticz.Debug("Got at least one result. So Warncell Id is alright.")
             if totalFeatures is None:
-                Domoticz.Error("Looks like wrong RegionType: {}".format(self.regionType))
+                Domoticz.Error(
+                    "Looks like wrong RegionType: {}".format(self.regionType)
+                )
                 self.setError("Settings Issue: Please verify setting eg. RegionType.")
 
             elif totalFeatures >= 1:
@@ -526,29 +563,36 @@ class Dwd:                                                  # (BlzHelperInterfac
                 self.setDetails(prop)
                 success = True
                 if totalFeatures > 1:
-                    Domoticz.Log("Looks like we found more entries - but we just take the first!")
+                    Domoticz.Log(
+                        "Looks like we found more entries - but we just take the first!"
+                    )
 
         else:
-            if (response and response.status_code >= 500):
+            if response and response.status_code >= 500:
                 Domoticz.Error(
-                    "Looks Server issue for Url={} code={} ".format(url, response.status_code)
+                    "Looks Server issue for Url={} code={} ".format(
+                        url, response.status_code
+                    )
                 )
                 self.setError("Connection Issue: - could not verify settings.")
             else:
                 Domoticz.Error(
-                    "Looks like unknown error: invalid WarnCell Id - Please check. Url={}. Error: {}. We will check for alternative server. "
-                    .format(url, response.content)
+                    "Looks like unknown error: invalid WarnCell Id - Please check. Url={}. Error: {}. We will check for alternative server. ".format(
+                        url, response.content
+                    )
                 )
 
-                if (self.useFallbackCheck is False):
-                    self.useFallbackCheck = True
-                    return self.doesWarnCellExist(SERVER_FALLBACK, timeout=self.timeout * 2)
-                else:
-                    self.setError(
-                        "Connection Issue: - could not verify settings. Details={}".format(
-                            response.content
-                        )
+                # if self.useFallbackCheck is False:
+                #    self.useFallbackCheck = True
+                #    return self.doesWarnCellExist(
+                #        SERVER_FALLBACK, timeout=self.timeout * 2
+                #    )
+                # else:
+                self.setError(
+                    "Connection Issue: - could not verify settings. Details={}".format(
+                        response.content
                     )
+                )
 
         return success
 
@@ -581,7 +625,6 @@ class Dwd:                                                  # (BlzHelperInterfac
         # maybe better just call it self
         success: bool = False
         try:
-
             if self.baseDataInitialized is False:
                 Domoticz.Debug(
                     "Looks like wrong order - check and init via 'doesWarnCellExist()' were missing "
@@ -614,20 +657,24 @@ class Dwd:                                                  # (BlzHelperInterfac
             #        format(e)
             #    )
 
-            if (response and response.status_code == 200):
+            if response and response.status_code == 200:
                 jResponse = response.json()
                 features = jResponse["features"]
                 totalFeatures = jResponse["totalFeatures"]
                 if totalFeatures is None:
                     raise Exception(
-                        "Fetched content looks wrong - no totalFeatures?! {}".format(url)
+                        "Fetched content looks wrong - no totalFeatures?! {}".format(
+                            url
+                        )
                     )
 
                 for ft in features:
                     self.parseWarning(ft)
                 success = True
                 self.updateNeeded = True
-                Domoticz.Debug("no optimized reading implemented jet - so always update needed")
+                Domoticz.Debug(
+                    "no optimized reading implemented jet - so always update needed"
+                )
 
                 # check timestamp
                 # if( self.lastTimeStamp is None or self.lastTimeStamp < self.currentTimeSamp):
@@ -642,7 +689,6 @@ class Dwd:                                                  # (BlzHelperInterfac
                 #     Domoticz.Debug("no new data")
 
             else:
-
                 Domoticz.Error("Could not fetch content from {}. ".format(url))
                 raise Exception("Could not fetch content from {}".format(url))
 
@@ -651,10 +697,10 @@ class Dwd:                                                  # (BlzHelperInterfac
             Domoticz.Error("Error during reading and parsing {}".format(e))
 
             self.setError(e)
-            if (self.useFallbackWarn is False):
-                Domoticz.Error("regarding to error - we try also alternative url. ")
-                self.useFallbackWarn = True
-                return self.readContent(SERVER_FALLBACK, timeout=self.timeout * 2)
+            # if self.useFallbackWarn is False:
+            #    Domoticz.Error("regarding to error - we try also alternative url. ")
+            #    self.useFallbackWarn = True
+            #    return self.readContent(SERVER_FALLBACK, timeout=self.timeout * 2)
 
         return success
 
@@ -668,7 +714,7 @@ class Dwd:                                                  # (BlzHelperInterfac
             self.immediateMax = Severity.max(self.immediateMax, dd.serverityType)
             # TODO do it on one block
             # extract worst warning
-            if (dd.serverityType == self.immediateMax):
+            if dd.serverityType == self.immediateMax:
                 self.immediateMaxWarning = dd
 
         else:
@@ -714,7 +760,7 @@ class Dwd:                                                  # (BlzHelperInterfac
                 text = text + seperator
             warnImg: str = ""
             details = ""
-            if (self.detailLevel.showIcon):
+            if self.detailLevel.showIcon:
                 # can also be multiple entries, sometime they use ',' sometime ';'
                 n = x.eventGroup.replace(",", ";")
                 splits = n.split(";")
@@ -731,7 +777,14 @@ class Dwd:                                                  # (BlzHelperInterfac
                         warnImg = (
                             "{}<img style='border: solid rgb({});'"
                             "height='20' src='{}' title='{:%a %d %H:%M}-{:%a %H:%M} {}'/>"
-                        ).format(warnImg, warnColor, icn.getUrl(), x.startTime, x.endTime, dscr)
+                        ).format(
+                            warnImg,
+                            warnColor,
+                            icn.getUrl(),
+                            x.startTime,
+                            x.endTime,
+                            dscr,
+                        )
             else:
                 # so no icon but need to put details there
                 details = " " + self.extractDescription(x.description)
@@ -779,13 +832,13 @@ class Dwd:                                                  # (BlzHelperInterfac
 
     def getDeviceNameFuture(self) -> str:
         s: str = self.shortName
-        if (len(self.futureWarnings) > 0):
+        if len(self.futureWarnings) > 0:
             s = "{}: {}".format(self.shortName, self.immediateMaxWarning.event)
         return s
 
     def getDeviceName(self) -> str:
         s: str = self.shortName
-        if (len(self.immediateWarnings) > 0):
+        if len(self.immediateWarnings) > 0:
             s = "{}: {}".format(self.shortName, self.immediateMaxWarning.event)
         return s
 

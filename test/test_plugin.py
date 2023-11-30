@@ -1,16 +1,18 @@
-from blz.fakeDomoticz import Parameters
-import unittest
-import sys
-import os.path
-import logging
+# import logging
 import codecs
+import logging
+import os.path
+import sys
+import unittest
+from test.logger import logger_cleanUp, logger_init
+
+from blz.fakeDomoticz import Parameters
 
 sys.path.insert(0, "..")
-from blz.blzHelperInterface import BlzHelperInterface
-from plugin import BasePlugin
+import configparser
 
 from dwd.dwd import Dwd, RegionType
-import configparser
+from plugin import BasePlugin
 
 CONFIG_SECTION_MY = "dwd_my"
 CONFIG_SECTION_GEMEINDE_OBERSTDORF = "dwd_Gemeinde_Oberstdorf"
@@ -23,8 +25,8 @@ CONFIG_SECTION_BUGGY = "dwd_buggy"
 
 # set up log
 # init ROOT logger from my_logger.logger_init()
-from test.logger import logger_init
-from test.logger import logger_cleanUp
+from test.logger import logger_cleanUp, logger_init
+
 logger_init()  # init root logger
 logger = logging.getLogger(__name__)  # module logger
 
@@ -33,7 +35,7 @@ class Test_plugin(unittest.TestCase):
     def setUp(self):
         # work around logger
         logger.info("# set up test for dwd")
-        self.plugin = BasePlugin() #plugin()
+        self.plugin = BasePlugin()  # plugin()
 
         config = configparser.ConfigParser()
         conf = r"./test/my_config.ini"
@@ -59,23 +61,23 @@ class Test_plugin(unittest.TestCase):
 
     def test_A_onStart(self):
         logger.info("#fake start of plugin")
-        #TODO call:
+        # TODO call:
         self.plugin.onStart()
 
     def test_A_onStart_Missing_Conf(self):
         logger.error("please insert test")
-        #TODO call:
-        #self.plugin.onStart()
+        # TODO call:
+        # self.plugin.onStart()
 
     def test_B_onHeartbeat(self):
         logger.info("#fake heart beat")
-        #TODO call:
+        # TODO call:
         self.plugin.onStart()
         self.plugin.onHeartbeat()
 
     def test_C_onStop(self):
         logger.info("#fake stop")
-        #TODO call:
+        # TODO call:
         self.plugin.onStop()
 
     def readAndCreate(self, aConfig, aSection):
@@ -93,9 +95,9 @@ class Test_plugin(unittest.TestCase):
         )
         cellId = aConfig.get(aSection, "cellId")
         region = aConfig.get(aSection, "region")
-        Parameters['Mode1'] = cellId
-        Parameters['Mode2'] = region
-        Parameters['Mode3'] = "event"
+        Parameters["Mode1"] = cellId
+        Parameters["Mode2"] = region
+        Parameters["Mode3"] = "event"
         rT: RegionType = RegionType.getByName(region)
         aDwd = Dwd(dwdWarnCellId=cellId, regionType=rT)
 

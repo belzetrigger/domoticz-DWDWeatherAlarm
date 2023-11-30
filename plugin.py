@@ -9,11 +9,13 @@
     externallink="https://github.com/belzetrigger/domoticz-DWDWeatherAlarm" >
     <description>
         <h2>DWD Weather Alarm</h2><br/>
-        Reads warning from Deutsche Wetter Dienst (DWD) and shows warning inside Domoticz
+        Reads warning from Deutsche Wetter Dienst (DWD) and shows warning
+        inside Domoticz
         <h3>Features</h3>
         <ul style="list-style-type:square">
             <li>uses the more detailed geoservice from DWD for the alerts</li>
-            <li>supports different kind of data sets like: Stadt, Gemeinde, Landkreis</li>
+            <li>supports different kind of data sets like: Stadt, Gemeinde,
+            Landkreis</li>
             <li>name of the location will be append to created devices</li>
             <li>two devices created, one for current alerts one for future</li>
             <li>show inline icon matching to alert type</li>
@@ -23,14 +25,19 @@
         </ul>
         <h3>Devices</h3>
         <ul style="list-style-type:square">
-            <li>alarm switch current - shows warning that are marked as immediate</li>
-            <li>alarm switch future - shows warning for the future - so not immediate</li>
+            <li>alarm switch current - shows warning that are marked as
+            immediate</li>
+            <li>alarm switch future - shows warning for the future -
+            so not immediate</li>
         </ul>
         <h3>Configuration</h3>
         For more details or examples see ReadMe at github.
         <ul style="list-style-type:square">
-            <li>WarnCellId - the official warncell Id from DWD see eg. 102000000 for Hamburg see: <a href="https://www.dwd.de/DE/leistungen/opendata/help/warnungen/cap_warncellids_csv.html">WarncellId CSV</a></li>
-            <li>RegionType - the matching region type for this warn cell. eg. Landkreise</li>
+            <li>WarnCellId - the official warncell Id from DWD see eg.
+            102000000 for Hamburg see:
+            <a href="https://www.dwd.de/DE/leistungen/opendata/help/warnungen/cap_warncellids_csv.html">WarncellId CSV</a></li>
+            <li>RegionType - the matching region type for this warn cell. eg.
+            Landkreise</li>
             <li>Details - define what to show: name, icon, description </li>
         </ul>
 
@@ -54,7 +61,8 @@
             <options>
                 <option label="event name with icon" value="event_icon"/>
                 <option label="only event name" value="event" />
-                <option label="event name, icon, details" value="event_icon_details"/>
+                <option label="event name, icon, details"
+                value="event_icon_details"/>
                 <option label="eventname, details" value="event_details"/>
             </options>
         </param>
@@ -73,35 +81,37 @@
 </plugin>
 """
 # test own html page
-from shutil import copy2, rmtree
 import os
 
 # import datetime as dt
 from datetime import datetime, timedelta
+from shutil import copy2, rmtree
 
 try:
-    import Domoticz          # type: ignore
+    import Domoticz  # type: ignore
 except ImportError:
     from blz import fakeDomoticz as Domoticz
-    from blz.fakeDomoticz import Parameters
-    from blz.fakeDomoticz import Devices
-    from blz.fakeDomoticz import Images
+    from blz.fakeDomoticz import Devices, Images, Parameters
 
-from dwd.dwd import Dwd, DwdDetailLevel, RegionType
 from blz import blzHelperInterface
+from dwd.dwd import Dwd, DwdDetailLevel, RegionType
 
 DWD_PARAM_PASS = "123"
 
-DWD_POLL_THRESHOLD_MIN_MINUTES = 5                   # minimum time in min to fetch new data
-DWD_POLL_THRESHOLD_MAX_MINUTES = 3 * 60              # max time in min to fetch new data aka 3h days
+# minimum time in min to fetch new data
+DWD_POLL_THRESHOLD_MIN_MINUTES = 5
+# max time in min to fetch new data aka 3h days
+DWD_POLL_THRESHOLD_MAX_MINUTES = 3 * 60
 DWD_DEFAULT_POLL_INTERVAL_MINUTES = DWD_POLL_THRESHOLD_MIN_MINUTES
-DWD_DEFAULT_DETAIL_LEVEL = DwdDetailLevel.EVENT_ICON # standard mode to show in domoticz
+# standard mode to show in domoticz
+DWD_DEFAULT_DETAIL_LEVEL = DwdDetailLevel.EVENT_ICON
 DWD_DEFAULT_DEBUG = False
 DWD_DEFAULT_TEST = False
-DWD_DEFAULT_TIMEOUT = 15                             # default timeout value for requests
+# default timeout value for requests
+DWD_DEFAULT_TIMEOUT = 15
 
 DWD_UNIT_NOW_SWITCH_IDX = 1    # unit index for current warning
-DWD_UNIT_FUTURE_SWITCH_IDX = 2 # unit index for future
+DWD_UNIT_FUTURE_SWITCH_IDX = 2  # unit index for future
 
 DWD_UNIT_NOW_NAME_SUFFIX = " (IMM)"
 DWD_UNIT_FUTURE_NAME_SUFFIX = " (FUTR)"
@@ -145,36 +155,42 @@ class BasePlugin:
             Domoticz.Error("Invalid polling interval parameter")
         else:
             if temp < DWD_POLL_THRESHOLD_MIN_MINUTES:
-                temp = DWD_POLL_THRESHOLD_MIN_MINUTES                          # minimum polling interval
+                # minimum polling interval
+                temp = DWD_POLL_THRESHOLD_MIN_MINUTES
                 Domoticz.Error(
                     "Specified polling interval too short: changed to {}".
                     format(DWD_POLL_THRESHOLD_MIN_MINUTES)
                 )
             elif temp > DWD_POLL_THRESHOLD_MAX_MINUTES:
-                temp = DWD_POLL_THRESHOLD_MAX_MINUTES                          # maximum polling interval is 1 hour
+                # maximum polling interval is 1 hour
+                temp = DWD_POLL_THRESHOLD_MAX_MINUTES
                 Domoticz.Error(
                     "Specified polling interval too long: changed to {} hour".
                     format(DWD_POLL_THRESHOLD_MAX_MINUTES)
                 )
             self.pollinterval = temp * 60
-        Domoticz.Log("Using polling interval of {} seconds".format(str(self.pollinterval)))
+        Domoticz.Log("Using polling interval of {} seconds".format(
+            str(self.pollinterval)))
 
         self.warncellId = Parameters["Mode1"]
         self.region = Parameters["Mode2"]
 
         if blzHelperInterface.isBlank(self.warncellId) or blzHelperInterface.isBlank(self.region):
-            Domoticz.Error("No warncellId / regionType set - please update setting.")
+            Domoticz.Error(
+                "No warncellId / regionType set - please update setting.")
             raise ValueError("warncellId and regionType must be given.")
         else:
             self.regionType = RegionType.getByName(self.region)
         # check detail level
         if blzHelperInterface.isBlank(Parameters["Mode3"]):
             Domoticz.Error(
-                "No Detail level defined use default: {}".format(DWD_DEFAULT_DETAIL_LEVEL.name)
+                "No Detail level defined use default: {}".format(
+                    DWD_DEFAULT_DETAIL_LEVEL.name)
             )
             self.detailLevel: DwdDetailLevel = DWD_DEFAULT_DETAIL_LEVEL
         else:
-            self.detailLevel: DwdDetailLevel = DwdDetailLevel.getByName(Parameters["Mode3"])
+            self.detailLevel: DwdDetailLevel = DwdDetailLevel.getByName(
+                Parameters["Mode3"])
         Domoticz.Debug("Use detail level: {}".format(self.detailLevel.name))
 
         # TODO check images
@@ -184,12 +200,15 @@ class BasePlugin:
         createDevices()
 
         # init with empty data
-        updateDevice(DWD_UNIT_NOW_SWITCH_IDX, 0, "No Data", "DWD" + DWD_UNIT_NOW_NAME_SUFFIX)
-        updateDevice(DWD_UNIT_FUTURE_SWITCH_IDX, 0, "No Data", "DWD" + DWD_UNIT_FUTURE_NAME_SUFFIX)
+        updateDevice(DWD_UNIT_NOW_SWITCH_IDX, 0, "No Data",
+                     "DWD" + DWD_UNIT_NOW_NAME_SUFFIX)
+        updateDevice(DWD_UNIT_FUTURE_SWITCH_IDX, 0, "No Data",
+                     "DWD" + DWD_UNIT_FUTURE_NAME_SUFFIX)
 
         self.defName = None
         # init and check dwd
-        # self.dwd = cDwd(self.warncellId, self.regionType, self.detailLevel, self.debug, self.test)
+        # self.dwd = cDwd(self.warncellId, self.regionType, self.detailLevel,
+        # self.debug, self.test)
         self.dwd = self.createHelper()
         # TODO dwd can be still None!!!!
         #      maybe lets check config on hearbeat is better
@@ -199,8 +218,10 @@ class BasePlugin:
             Domoticz.Log("DWD Configuration allright - continue")
             # show name
             n = self.dwd.getDeviceName()
-            updateDevice(DWD_UNIT_NOW_SWITCH_IDX, 0, "No Data", n + DWD_UNIT_NOW_NAME_SUFFIX)
-            updateDevice(DWD_UNIT_FUTURE_SWITCH_IDX, 0, "No Data", n + DWD_UNIT_FUTURE_NAME_SUFFIX)
+            updateDevice(DWD_UNIT_NOW_SWITCH_IDX, 0, "No Data",
+                         n + DWD_UNIT_NOW_NAME_SUFFIX)
+            updateDevice(DWD_UNIT_FUTURE_SWITCH_IDX, 0, "No Data",
+                         n + DWD_UNIT_FUTURE_NAME_SUFFIX)
 
         else:
             Domoticz.Error("Please verify configuration and look into logs.")
@@ -229,7 +250,8 @@ class BasePlugin:
         else:
             Domoticz.Debug("dwd is None")
 
-        self.htmlSource = "./plugins/{}/{}".format(DWD_PLUGIN_NAME, DWD_HTML_NAME)
+        self.htmlSource = "./plugins/{}/{}".format(
+            DWD_PLUGIN_NAME, DWD_HTML_NAME)
         self.htmlTarget = './www/templates/{}.html'.format(DWD_PLUGIN_NAME)
 
         self.install()
@@ -248,7 +270,8 @@ class BasePlugin:
             templates_path = Parameters['StartupFolder'] + 'www/templates'
             dst_plugin_path = templates_path + '/dwdWeatherAlarm'
 
-            Domoticz.Debug('Copying files from ' + source_path + ' to ' + templates_path)
+            Domoticz.Debug('Copying files from ' +
+                           source_path + ' to ' + templates_path)
 
             if not (os.path.isdir(dst_plugin_path)):
                 os.makedirs(dst_plugin_path)
@@ -291,15 +314,19 @@ class BasePlugin:
         newDwd: Dwd = None
         if (self.regionType and self.warncellId):
             # deeper check for details
-            if (self.detailLevel is not None and self.debug is not None and self.test is not None):
+            if (self.detailLevel is not None and self.debug is not None and
+                self.test is not None):
                 newDwd = Dwd(
-                    self.warncellId, self.regionType, self.detailLevel, self.debug, self.test,
+                    self.warncellId, self.regionType, self.detailLevel,
+                    self.debug, self.test,
                     DWD_DEFAULT_TIMEOUT
                 )
             else:
-                Domoticz.Error("Not complet hardware configuration, use defaults")
+                Domoticz.Error(
+                    "Not complet hardware configuration, use defaults")
                 newDwd = Dwd(
-                    self.warncellId, self.regionType, DWD_DEFAULT_DETAIL_LEVEL, DWD_DEFAULT_DEBUG,
+                    self.warncellId, self.regionType, DWD_DEFAULT_DETAIL_LEVEL,
+                    DWD_DEFAULT_DEBUG,
                     DWD_DEFAULT_TEST, DWD_DEFAULT_TIMEOUT
                 )
 
@@ -320,10 +347,12 @@ class BasePlugin:
 
     def onCommand(self, Unit, Command, Level, Hue):
         Domoticz.Log(
-            "onCommand called for Unit: {} Parameter '{}', Level: {}".format(Unit, Command, Level)
+            "onCommand called for Unit: {} Parameter '{}', Level: {}".format(
+                Unit, Command, Level)
         )
 
-    def onNotification(self, Name, Subject, Text, Status, Priority, Sound, ImageFile):
+    def onNotification(self, Name, Subject, Text, Status, Priority, Sound,
+                       ImageFile):
         Domoticz.Log(
             (
                 "Notification: Name: {}, Subject: {}, Text: {}, Status: {},"
@@ -338,11 +367,13 @@ class BasePlugin:
         Domoticz.Log("onHeartbeat called")
         myNow = datetime.now()
         if myNow >= self.nextpoll:
-            Domoticz.Debug("----------------------------------------------------")
+            Domoticz.Debug(
+                "----------------------------------------------------")
 
             # TODO handle dwd is None
             if self.dwd is None:
-                Domoticz.Error("Dwd is None. Try to recreate. And wait for next polltime")
+                Domoticz.Error(
+                    "Dwd is None. Try to recreate. And wait for next polltime")
                 self.dwd = self.createHelper()
                 # self.dwd.doesWarnCellExist() better not interaction
 
@@ -356,7 +387,8 @@ class BasePlugin:
                 self.errorCounter += 1
                 if self.errorCounter % 10 == 0:
                     Domoticz.Error(
-                        "got {} times an error, wait 10 min before try again".format(
+                        "got {} times an error, wait 10 min before try again"
+                        .format(
                             self.errorCounter
                         )
                     )
@@ -365,7 +397,8 @@ class BasePlugin:
                     self.nextpoll = myNow + timedelta(minutes=10)
                     return
 
-                Domoticz.Error("Uuups. Something went wrong ... Shouldn't happen")
+                Domoticz.Error(
+                    "Uuups. Something went wrong ... Shouldn't happen")
                 t = "Error"
                 if self.debug is True and self.dwd is not None:
                     Domoticz.Debug(self.dwd.getSummary())
@@ -373,10 +406,12 @@ class BasePlugin:
                     t = "{}:{}".format(t, self.dwd.getErrorMsg())
 
                 updateDeviceByUnit(
-                    DWD_UNIT_NOW_SWITCH_IDX, 0, t, "Error" + DWD_UNIT_NOW_NAME_SUFFIX
+                    DWD_UNIT_NOW_SWITCH_IDX, 0, t, "Error" +
+                    DWD_UNIT_NOW_NAME_SUFFIX
                 )
                 updateDeviceByUnit(
-                    DWD_UNIT_FUTURE_SWITCH_IDX, 0, t, "Error" + DWD_UNIT_FUTURE_NAME_SUFFIX
+                    DWD_UNIT_FUTURE_SWITCH_IDX, 0, t, "Error" +
+                    DWD_UNIT_FUTURE_NAME_SUFFIX
                 )
 
                 self.nextpoll = myNow
@@ -387,7 +422,8 @@ class BasePlugin:
                     alarmLevel = self.dwd.getAlarmLevel()
                     summary = self.dwd.getAlarmText()
                     name = self.dwd.getDeviceName()
-                    # TODO as we change name but updateDevice is not checking this, we say alwaysUpdate
+                    # TODO as we change name but updateDevice is not checking
+                    # this, we say alwaysUpdate
                     updateDevice(
                         DWD_UNIT_NOW_SWITCH_IDX,
                         alarmLevel,
@@ -400,7 +436,8 @@ class BasePlugin:
                     summaryFut = self.dwd.getAlarmTextFuture()
                     nameFut = self.dwd.getDeviceNameFuture()
 
-                    # TODO as we change name but updateDevice is not checking this, we say alwaysUpdate
+                    # TODO as we change name but updateDevice is not checking
+                    # this, we say alwaysUpdate
                     updateDevice(
                         DWD_UNIT_FUTURE_SWITCH_IDX,
                         alarmLevelFut,
@@ -409,10 +446,12 @@ class BasePlugin:
                         True,
                     )
                     self.lastUpdate = myNow
-                # only on success set next poll time, so on error, we run it next heartbeat
+                # only on success set next poll time, so on error, we run it
+                # next heartbeat
                 self.nextpoll = myNow + timedelta(seconds=self.pollinterval)
 
-            Domoticz.Debug("----------------------------------------------------")
+            Domoticz.Debug(
+                "----------------------------------------------------")
 
 
 global _plugin
@@ -446,7 +485,8 @@ def onCommand(Unit, Command, Level, Hue):
 
 def onNotification(Name, Subject, Text, Status, Priority, Sound, ImageFile):
     global _plugin
-    _plugin.onNotification(Name, Subject, Text, Status, Priority, Sound, ImageFile)
+    _plugin.onNotification(Name, Subject, Text, Status,
+                           Priority, Sound, ImageFile)
 
 
 def onDisconnect(Connection):
@@ -490,10 +530,12 @@ def checkImages(sName: str, sZip: str):
 
 
 def updateDeviceByUnit(
-    Unit: int, alarmLevel, alarmData, name: str = "", dscr: str = "", alwaysUpdate=False
+    Unit: int, alarmLevel, alarmData, name: str = "", dscr: str = "",
+    alwaysUpdate=False
 ):
     """standard update with unit number.
-       Device will only be updated only if values are changed or alwaysUpdate = True
+       Device will only be updated only if values are changed or
+       alwaysUpdate = True
 
     Arguments:
         Unit {int} -- unit number of the device to update
@@ -507,14 +549,18 @@ def updateDeviceByUnit(
     """
     Domoticz.Debug("updateDeviceByUnit: unit {}, name {} ".format(Unit, name))
 
-    # Make sure that the Domoticz device still exists (they can be deleted) before updating it
+    # Make sure that the Domoticz device still exists (they can be deleted)
+    # before updating it
     if Unit in Devices:
         if (alarmData != Devices[Unit].sValue
-            ) or (int(alarmLevel) != Devices[Unit].nValue or alwaysUpdate is True):
+            ) or (int(alarmLevel) != Devices[Unit].nValue or
+                  alwaysUpdate is True):
             if not name:
-                Devices[Unit].Update(int(alarmLevel), alarmData, Description=dscr)
+                Devices[Unit].Update(
+                    int(alarmLevel), alarmData, Description=dscr)
             else:
-                Devices[Unit].Update(int(alarmLevel), alarmData, Name=name, Description=dscr)
+                Devices[Unit].Update(
+                    int(alarmLevel), alarmData, Name=name, Description=dscr)
 
             Domoticz.Log(
                 "Update #{} Name: {} nV: {} sV: {}  ".format(
@@ -524,7 +570,8 @@ def updateDeviceByUnit(
         else:
             Domoticz.Log("BLZ: Remains Unchanged")
     else:
-        Domoticz.Error("Devices[{}] is unknown. So we cannot update it.".format(Unit))
+        Domoticz.Error(
+            "Devices[{}] is unknown. So we cannot update it.".format(Unit))
 
 
 def updateImageByUnit(Unit: int, picture):
@@ -537,10 +584,12 @@ def updateImageByUnit(Unit: int, picture):
     """
     Domoticz.Debug("Image: Update Unit: {} Image: {}".format(Unit, picture))
     if Unit in Devices and picture in Images:
-        Domoticz.Debug("Image: Name:{}\tId:{}".format(picture, Images[picture].ID))
+        Domoticz.Debug("Image: Name:{}\tId:{}".format(
+            picture, Images[picture].ID))
         if Devices[Unit].Image != Images[picture].ID:
             Domoticz.Log(
-                ("Image: Device Image update: 'Fritz!Box', Currently {}, should be {} "
+                ("Image: Device Image update: 'Fritz!Box', Currently {}, "
+                 "should be {} "
                  ).format(str(Devices[Unit].Image), str(Images[picture].ID))
             )
             Devices[Unit].Update(
@@ -550,11 +599,13 @@ def updateImageByUnit(Unit: int, picture):
             )
             # Devices[Unit].Update(int(alarmLevel), alarmData, Name=name)
     else:
-        Domoticz.Error("BLZ: Image: Unit or Picture {} unknown".format(picture))
+        Domoticz.Error(
+            "BLZ: Image: Unit or Picture {} unknown".format(picture))
         Domoticz.Error("BLZ: Number of icons loaded = " + str(len(Images)))
         for image in Images:
             Domoticz.Error(
-                "Image: {} id: {} name: {}".format(image, Images[image].ID, Images[image].Name)
+                "Image: {} id: {} name: {}".format(
+                    image, Images[image].ID, Images[image].Name)
             )
     return
 
@@ -571,12 +622,14 @@ def createDevices():
     # create the mandatory child devices if not yet exist
     if DWD_UNIT_NOW_SWITCH_IDX not in Devices:
         Domoticz.Device(
-            Name="DWD Immediate", Unit=DWD_UNIT_NOW_SWITCH_IDX, TypeName="Alert", Used=1
+            Name="DWD Immediate", Unit=DWD_UNIT_NOW_SWITCH_IDX,
+            TypeName="Alert", Used=1
         ).Create()
         Domoticz.Log("Devices[{}] created.".format(DWD_UNIT_NOW_SWITCH_IDX))
     if DWD_UNIT_FUTURE_SWITCH_IDX not in Devices:
         Domoticz.Device(
-            Name="DWD Future", Unit=DWD_UNIT_FUTURE_SWITCH_IDX, TypeName="Alert", Used=1
+            Name="DWD Future", Unit=DWD_UNIT_FUTURE_SWITCH_IDX,
+            TypeName="Alert", Used=1
         ).Create()
         Domoticz.Log("Devices[{}] created.".format(DWD_UNIT_FUTURE_SWITCH_IDX))
 
@@ -587,24 +640,32 @@ def updateDevice(Unit, alarmLevel, alarmData, name="", alwaysUpdate=False):
     If there are changes and the device exists.
     Arguments:
         Unit {int} -- index of device, 1 = today, 2 = tomorrow
-        highestLevel {[type]} -- the maximum warning level for that day, it is used to set the domoticz alarm level
+        highestLevel {[type]} -- the maximum warning level for that day,
+        it is used to set the domoticz alarm level
         alarmData {[str]} -- data to show in that device, aka text
 
     Optional Arguments:
-        name {str} -- optional: to set the name of that device, eg. mor info about  (default: {''})
-        alwaysUpdate {bool} -- optional: to ignore current status/needs update (default: {False})
+        name {str} -- optional: to set the name of that device,
+        eg. mor info about  (default: {''})
+        alwaysUpdate {bool} -- optional: to ignore current status/needs update
+        (default: {False})
     """
 
-    # Make sure that the Domoticz device still exists (they can be deleted) before updating it
+    # Make sure that the Domoticz device still exists (they can be deleted)
+    # before updating it
     if Unit in Devices:
         if (alarmData != Devices[Unit].sValue
-            ) or (int(alarmLevel) != Devices[Unit].nValue or alwaysUpdate is True):
+            ) or (int(alarmLevel) != Devices[Unit].nValue or
+                  alwaysUpdate is True):
             if len(name) <= 0:
                 Devices[Unit].Update(int(alarmLevel), alarmData)
             else:
-                Devices[Unit].Update(nValue=int(alarmLevel), sValue=alarmData, Name=name)
-            Domoticz.Log("BLZ: Updated to: {} value: {}".format(alarmData, alarmLevel))
+                Devices[Unit].Update(nValue=int(
+                    alarmLevel), sValue=alarmData, Name=name)
+            Domoticz.Log("BLZ: Updated to: {} value: {}".format(
+                alarmData, alarmLevel))
         else:
             Domoticz.Log("BLZ: Remains Unchanged")
     else:
-        Domoticz.Error("Devices[{}] is unknown. So we cannot update it.".format(Unit))
+        Domoticz.Error(
+            "Devices[{}] is unknown. So we cannot update it.".format(Unit))

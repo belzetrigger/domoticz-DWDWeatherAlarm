@@ -1,22 +1,16 @@
-import random
-import unittest
-import sys
+from test.logger import logger_init
 import logging
-import codecs
+import sys
+import unittest
+
 import blz.blzHelperInterface as blz
 
-
 sys.path.insert(0, "..")
-#from blz.blzHelperInterface import BlzHelperInterface as blz
-from blz.fakeDomoticz import Parameters
-from blz.fakeDomoticz import Devices
-
-import configparser
+# from blz.blzHelperInterface import BlzHelperInterface as blz
 
 # set up log
 # init ROOT logger from my_logger.logger_init()
-from test.logger import logger_init
-from test.logger import logger_cleanUp
+
 logger_init()  # init root logger
 logger = logging.getLogger(__name__)  # module logger
 
@@ -30,7 +24,7 @@ class Test_blz(unittest.TestCase):
 
     def tearDown(self):
         logging.getLogger().info("# tear down: test for blz")
-        #if self.dwd:
+        # if self.dwd:
         #    self.dwd.reset()
         #    self.dwd = None
 
@@ -38,7 +32,7 @@ class Test_blz(unittest.TestCase):
         logger.removeHandler(self.stream_handler)
 
     def test_Contains(self):
-        s:str = "Test Debug"
+        s: str = "Test Debug"
         logging.getLogger().info("# test with  booth values given")
         self.assertTrue(blz.contains(s, "test"))
         self.assertTrue(blz.containsTest(s))
@@ -52,7 +46,7 @@ class Test_blz(unittest.TestCase):
         n = None
         self.assertFalse(blz.contains(s, n))
 
-        s:str = "Debug"
+        s: str = "Debug"
         self.assertFalse(blz.contains(s, "test"))
         self.assertFalse(blz.containsTest(s))
         self.assertTrue(blz.containsDebug(s))

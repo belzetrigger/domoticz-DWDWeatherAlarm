@@ -7,19 +7,21 @@
 #   https://github.com/ffes/domoticz-buienradar
 #
 #
-from typing import Any, Dict
 import logging
+from typing import Any, Dict
+
 log = logging.getLogger(__name__)
 log.level = logging.DEBUG
 
-Parameters: Dict[str, Any] = {"Mode1": None,
+Parameters: Dict[str, Any] = {
+    "Mode1": None,
     "Mode2": None,
     "Mode3": None,
     "Mode4": None,
     "Mode5": None,
     "Mode6": "Debug",
     "HomeFolder": "./",
-    "StartupFolder": "wwwtest/"
+    "StartupFolder": "wwwtest/",
 }
 Images: Dict[str, Any] = {}
 Devices: Dict[str, Any] = {}
@@ -29,15 +31,17 @@ class X:
     """
     fake class
     """
+
     ID: str
     Name: str
     Unit: str
     DeviceID: str
     sValue: str
-    descr: str
+    # descr: str
     level: int
     nValue: int
     LastLevel: int
+    Description: str  # descr or Description?
 
     def __init__(self, iUnit: int, aID: str) -> None:
         self.ID = aID
@@ -45,7 +49,7 @@ class X:
         self.Unit = aID
         self.DeviceID = aID
         self.sValue = str(aID)
-        self.nValue =iUnit
+        self.nValue = iUnit
         self.level = 0
         pass
 
@@ -53,19 +57,28 @@ class X:
         log.info("create called")
         pass
 
-    def Update(self, nValue: int = 0, sValue: str = None, Name: str = None, descr: str = None):
-        '''
+    def Update(
+        self,
+        nValue: int = 0,
+        sValue: str = None,
+        Name: str = None,
+        Description: str = None,
+    ):
+        """
         nValue: alarmLevel
         sValue: alarmData
-        '''
+        """
         self.LastLevel = self.level
         self.level = nValue
         self.Name = Name
-        self.descr = descr
+        self.Description = Description
         self.sValue = sValue
-        log.debug("update called:  alarmLevel: {}, "
-                  "alarmData: {} , Name: {}, descr: {} "
-                  .format(nValue, sValue, Name, descr))
+        log.debug(
+            "update called:  alarmLevel: {}, "
+            "alarmData: {} , Name: {}, descr: {} ".format(
+                nValue, sValue, Name, Description
+            )
+        )
         pass
 
 
@@ -76,12 +89,20 @@ def Image(sZip: str):
     return img
 
 
-def Device(Name: str, Unit: str, TypeName: str,
-           Used: bool = 1,
-           Switchtype: int = 18, Options: str = None):
-    log.debug("Device called: Name: {}, Unit: {}, TypeName: {}, "
-              "Used: {}, Switchtype: {},Options: {}".format(
-                  Name, Unit, TypeName, Used, Switchtype, Options))
+def Device(
+    Name: str,
+    Unit: str,
+    TypeName: str,
+    Used: bool = 1,
+    Switchtype: int = 18,
+    Options: str = None,
+):
+    log.debug(
+        "Device called: Name: {}, Unit: {}, TypeName: {}, "
+        "Used: {}, Switchtype: {},Options: {}".format(
+            Name, Unit, TypeName, Used, Switchtype, Options
+        )
+    )
     x = X(Unit, str(Unit))
     Devices[Unit] = x
     return x
