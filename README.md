@@ -1,7 +1,7 @@
 # domoticz-DWD Weather Alarm
 
 [![PyPI pyversions](https://img.shields.io/badge/python-3.7%20|%203.8%20|%203.9-blue.svg)]()
-[![Plugin version](https://img.shields.io/badge/version-0.0.2-red.svg)](https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/branches/)
+[![Plugin version](https://img.shields.io/badge/version-0.0.3-red.svg)](https://github.com/belzetrigger/domoticz-DWDWeatherAlarm/branches/)
 
 Yet another weather warning plugin for Domoticz. This plugin uses the data provided by the [Deutsche Wetter Dienst](https://www.dwd.de). For performance and some other reasons this plugin uses the [WFS 2.0](https://www.dwd.de/DE/leistungen/geodienste/geodienste.html). So it is possible to download an process only data the are relevant instead of dealing with a bunch of unnecessary data like with other APIs provided by DWD.
 
@@ -94,6 +94,7 @@ Just add your warncell / region. Check out that devices are created. Locations n
 If nothing pops up, check Domoticz Logs. And try to change Id or RegionType.
 
 ## Bugs and ToDos
+- [x] bug with new data from DWD if containing 'SLIPPERINESS'
 - [x] use name coming from WFS for devices
 - [x] use icons to symbolize the event
 - [x] use color to show severity
@@ -109,6 +110,7 @@ If nothing pops up, check Domoticz Logs. And try to change Id or RegionType.
 ## Versions
 | Version | Note                                                                                                                    |
 | ------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 0.0.3   | <ul><li>add SLIPPERINESS for Icon use</li></ul>                                                                         |
 | 0.0.2   | <ul><li>add timeout for GET requests and also show error details on device </li><li>option to define what to show </li> |
 | 0.0.1   | initial version with basic functions                                                                                    |
 
