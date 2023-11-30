@@ -5,7 +5,7 @@
 #
 """
 <plugin key="DWDWeatherAlarm" name="DWD Weather Alarm Plugin"
-    author="belze" version="0.0.3"
+    author="belze" version="0.0.4"
     externallink="https://github.com/belzetrigger/domoticz-DWDWeatherAlarm" >
     <description>
         <h2>DWD Weather Alarm</h2><br/>
